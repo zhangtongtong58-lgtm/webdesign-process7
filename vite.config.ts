@@ -4,6 +4,7 @@ import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
   plugins: [vue()],
+  base: '/webdesign-process7/',
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
