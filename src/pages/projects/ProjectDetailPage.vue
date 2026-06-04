@@ -433,13 +433,18 @@ const handleAddProjectConfirm = () => {
   <section class="proj-detail">
     <!-- Admin notice -->
     <div v-if="isAdmin" class="proj-detail__notice">
-      <span class="proj-detail__notice-icon">ⓘ</span>
+      <span class="proj-detail__notice-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12.0312 2.34969C13.6625 2.34969 15.2371 2.75343 16.6415 3.51339C16.9815 3.69739 17.108 4.12218 16.924 4.46218C16.74 4.80219 16.3152 4.92867 15.9752 4.74467C14.7742 4.09476 13.4284 3.74969 12.0312 3.74969C7.44721 3.74969 3.73118 7.46573 3.73118 12.0497C3.73118 16.6337 7.44721 20.3497 12.0312 20.3497C16.6151 20.3497 20.3312 16.6337 20.3312 12.0497C20.3312 9.98725 19.577 8.04389 18.234 6.53456C17.977 6.24575 18.0028 5.80329 18.2916 5.54629C18.5804 5.2893 19.0229 5.31509 19.2799 5.60391C20.8489 7.36716 21.7312 9.64078 21.7312 12.0497C21.7312 17.4069 17.3883 21.7497 12.0312 21.7497C6.67402 21.7497 2.33118 17.4069 2.33118 12.0497C2.33118 6.69253 6.67401 2.34969 12.0312 2.34969ZM13.1333 7.65356C13.1333 8.27889 12.6253 8.78685 12 8.78685C11.3747 8.78685 10.8667 8.27889 10.8667 7.65356C10.8667 7.02823 11.3747 6.52027 12 6.52027C12.6253 6.52027 13.1333 7.02823 13.1333 7.65356ZM12.7065 9.99663C12.6614 9.65479 12.3695 9.39036 12.0151 9.38905C11.6285 9.38762 11.314 9.69985 11.3125 10.0864L11.2875 16.85L11.2935 16.945C11.3386 17.2869 11.6305 17.5513 11.9849 17.5526C12.3715 17.5541 12.686 17.2418 12.6875 16.8552L12.7125 10.0916L12.7065 9.99663Z" fill="currentColor" fill-opacity="0.8"/>
+        </svg>
+      </span>
       <span>{{ t('project.adminNotice') }}</span>
     </div>
 
     <!-- Project selector row -->
     <div class="proj-detail__selector-row">
       <div class="proj-detail__selector-left">
+        <span class="proj-detail__selector-label">项目</span>
         <OSelect v-model="selectedProjectId" class="proj-detail__selector" @change="syncForm">
           <OOption v-for="o in projectOptions" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
@@ -478,19 +483,19 @@ const handleAddProjectConfirm = () => {
                 <OInput :model-value="project?.projectId" disabled />
               </div>
               <div class="proj-detail__form-field proj-detail__form-field--full">
-                <label class="proj-detail__form-label">{{ t('project.descField') }}</label>
+                <label class="proj-detail__form-label"><span class="proj-detail__required">*</span>{{ t('project.descField') }}</label>
                 <OTextarea v-model="form.description" :rows="3" />
               </div>
               <div class="proj-detail__form-field">
-                <label class="proj-detail__form-label">{{ t('project.kernelVersion') }}</label>
+                <label class="proj-detail__form-label"><span class="proj-detail__required">*</span>{{ t('project.kernelVersion') }}</label>
                 <OInput v-model="form.kernelVersion" />
               </div>
               <div class="proj-detail__form-field">
-                <label class="proj-detail__form-label">{{ t('project.osVersion') }}</label>
+                <label class="proj-detail__form-label"><span class="proj-detail__required">*</span>{{ t('project.osVersion') }}</label>
                 <OInput v-model="form.osVersion" />
               </div>
               <div class="proj-detail__form-field">
-                <label class="proj-detail__form-label">{{ t('project.statusField') }}</label>
+                <label class="proj-detail__form-label"><span class="proj-detail__required">*</span>{{ t('project.statusField') }}</label>
                 <OSelect v-model="form.status">
                   <OOption value="active" :label="t('project.statusActive')" />
                   <OOption value="planning" :label="t('project.statusPlanning')" />
@@ -498,34 +503,18 @@ const handleAddProjectConfirm = () => {
                 </OSelect>
               </div>
               <div class="proj-detail__form-field">
-                <label class="proj-detail__form-label">{{ t('project.ownerField') }}</label>
+                <label class="proj-detail__form-label"><span class="proj-detail__required">*</span>{{ t('project.ownerField') }}</label>
                 <OInput v-model="form.owner" />
               </div>
-            </div>
-            <div class="proj-detail__form-footer">
-              <OButton variant="solid" color="primary" @click="handleSave" round="pill">{{ t('action.save') }}</OButton>
-            </div>
-          </OCard>
-
-          <!-- Right: hardware specs -->
-          <OCard class="proj-detail__hw-card">
-            <div class="proj-detail__section-title">
-              <span class="proj-detail__section-bar" />
-              {{ t('project.hardware') }}
-            </div>
-
-            <ODivider darker />
-
-            <div class="proj-detail__hw-grid">
               <div class="proj-detail__form-field">
-                <label class="proj-detail__form-label">{{ t('project.productVersion') }}</label>
+                <label class="proj-detail__form-label"><span class="proj-detail__required">*</span>{{ t('project.productVersion') }}</label>
                 <OSelect v-model="form.productVersion">
                   <OOption value="950" label="950" />
                   <OOption value="920" label="920" />
                 </OSelect>
               </div>
               <div class="proj-detail__form-field">
-                <label class="proj-detail__form-label">{{ t('project.cpuArch') }}</label>
+                <label class="proj-detail__form-label"><span class="proj-detail__required">*</span>{{ t('project.cpuArch') }}</label>
                 <OSelect v-model="form.cpuArch">
                   <OOption value="x86_64" label="x86_64" />
                   <OOption value="aarch64" label="aarch64" />
@@ -572,10 +561,6 @@ const handleAddProjectConfirm = () => {
               />
             </OStep>
           </div>
-
-          <div class="proj-detail__form-footer">
-            <OButton variant="solid" color="primary" @click="handleSave" round="pill">{{ t('action.save') }}</OButton>
-          </div>
         </OCard>
       </OTabPane>
 
@@ -602,28 +587,145 @@ const handleAddProjectConfirm = () => {
       <!-- ── Tab 4: Pipeline Console ── -->
       <OTabPane value="pipeline" :label="t('project.pipeline')">
         <div class="proj-detail__pipeline">
-          <!-- 一键执行流水线区 -->
-          <div class="proj-detail__pipeline-toolbar">
-            <OButton variant="solid" color="primary" size="medium" round="pill" @click="openPipelineDialog">
-              {{ t('pipeline.runAll') }}
-            </OButton>
+          <!-- 执行配置区（原弹窗内容移至此处） -->
+          <div class="proj-detail__pipeline-execute">
+            <!-- ① 构建区 -->
+            <div class="pl-execute__section-title">
+              <span class="pl-execute__bar" />构建区
+            </div>
+            <div class="pl-execute__build-options">
+              <div
+                class="pl-execute__build-card"
+                :class="{ 'pl-execute__build-card--active': pipelineDialog.buildMode === 'auto' }"
+                @click="pipelineDialog.buildMode = 'auto'"
+              >
+                <ORadioGroup v-model="pipelineDialog.buildMode" direction="horizontal">
+                  <ORadio value="auto">自动编译流水线</ORadio>
+                </ORadioGroup>
+                <p class="pl-execute__build-desc">
+                  基线版本：openEuler-24.03-LTS，自动编译当前项目范围内待合入补丁，默认集群执行
+                </p>
+              </div>
+              <div
+                class="pl-execute__build-card"
+                :class="{ 'pl-execute__build-card--active': pipelineDialog.buildMode === 'manual' }"
+                @click="pipelineDialog.buildMode = 'manual'"
+              >
+                <ORadioGroup v-model="pipelineDialog.buildMode" direction="horizontal">
+                  <ORadio value="manual">手动上传</ORadio>
+                </ORadioGroup>
+                <div v-if="pipelineDialog.buildMode === 'manual'" class="pl-execute__upload-area">
+                  <OUpload
+                    v-model="pipelineDialog.uploadFiles"
+                    accept=".rpm,.tar.gz,.zip"
+                    :multiple="false"
+                    :upload-request="handleBuildUpload"
+                    btn-label="选择构建包"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- ② 用例选择区 -->
+            <div class="pl-execute__section-title pl-execute__section-title--mt">
+              <span class="pl-execute__bar" />用例选择区
+              <span class="pl-execute__case-count">
+                已选 <strong>{{ dialogSelectedIds.length }}</strong> / {{ dialogCases.length }} 个用例
+              </span>
+            </div>
+
+            <!-- 筛选器 -->
+            <div class="pl-execute__filter">
+              <OSelect v-model="dialogFilter.level" placeholder="用例级别" variant="outline" size="medium"
+                class="pl-execute__sel" @change="dialogPage = 1">
+                <OOption v-for="o in dialogLevelOptions" :key="o.value" :value="o.value" :label="o.label" />
+              </OSelect>
+              <OSelect v-model="dialogFilter.testType" placeholder="测试类型" variant="outline" size="medium"
+                class="pl-execute__sel" @change="dialogPage = 1">
+                <OOption v-for="o in dialogTypeOptions" :key="o.value" :value="o.value" :label="o.label" />
+              </OSelect>
+              <OSelect v-model="dialogFilter.autoStatus" placeholder="自动化类型" variant="outline" size="medium"
+                class="pl-execute__sel" @change="dialogPage = 1">
+                <OOption v-for="o in dialogAutoOptions" :key="o.value" :value="o.value" :label="o.label" />
+              </OSelect>
+              <OSelect v-model="dialogFilter.execResult" placeholder="用例执行结果" variant="outline" size="medium"
+                class="pl-execute__sel pl-execute__sel--wide" @change="dialogPage = 1">
+                <OOption v-for="o in dialogResultOptions" :key="o.value" :value="o.value" :label="o.label" />
+              </OSelect>
+              <OLink color="primary" @click="clearDialogFilter">清除筛选</OLink>
+            </div>
+
+            <!-- 用例选择表格 -->
+            <div class="pl-execute__table-wrap">
+              <OTable :columns="dialogCaseColumns" :data="dialogPagedCases">
+                <template #th_select>
+                  <OCheckbox v-model="dialogAllChecked" />
+                </template>
+                <template #td_select="{ row }">
+                  <OCheckbox v-model="dialogSelectedIds" :value="row.id" />
+                </template>
+                <template #td_name="{ row }">
+                  <span class="pl-execute__cell-name">{{ row.name }}</span>
+                </template>
+                <template #td_testId="{ row }">
+                  <span class="pl-execute__cell-id">{{ row.testId }}</span>
+                </template>
+                <template #td_level="{ row }">
+                  <OTag color="info" size="medium" variant="outline">{{ row.level }}</OTag>
+                </template>
+                <template #td_precondition="{ row }">
+                  <span class="pl-execute__cell-text">{{ row.precondition }}</span>
+                </template>
+                <template #td_testSteps="{ row }">
+                  <span class="pl-execute__cell-text">{{ row.testSteps }}</span>
+                </template>
+                <template #td_expectedResult="{ row }">
+                  <span class="pl-execute__cell-text">{{ row.expectedResult }}</span>
+                </template>
+                <template #td_automationScript="{ row }">
+                  <span class="pl-execute__cell-script">{{ row.automationScript }}</span>
+                </template>
+                <template #td_lastExecResult="{ row }">
+                  <OTag :color="dlgExecColor(row.lastExecResult)" size="medium">
+                    {{ dlgExecLabel(row.lastExecResult) }}
+                  </OTag>
+                </template>
+                <template #td_feature="{ row }">
+                  <span class="pl-execute__cell-plain">{{ row.feature || '—' }}</span>
+                </template>
+                <template #td_lastExecutor="{ row }">
+                  <span class="pl-execute__cell-plain">{{ row.lastExecutor || '—' }}</span>
+                </template>
+                <template #td_testType="{ row }">
+                  <span class="pl-execute__cell-plain">{{ dlgTypeLabel(row.testType) }}</span>
+                </template>
+                <template #td_isAutomated="{ row }">
+                  <OTag :color="row.isAutomated ? 'success' : 'info'" size="medium" variant="outline">
+                    {{ row.isAutomated ? 'TRUE' : 'FALSE' }}
+                  </OTag>
+                </template>
+              </OTable>
+            </div>
+
+            <!-- 分页 -->
+            <div class="pl-execute__pagination">
+              <OPagination
+                :total="dialogCases.length"
+                :page="dialogPage"
+                :page-size="dialogPageSize"
+                @change="onDialogPageChange"
+              />
+            </div>
+
+            <!-- 底部操作按钮 -->
+            <div class="pl-execute__footer">
+              <OButton variant="outline" size="medium" round="pill" @click="pipelineDialog.visible = false">取消</OButton>
+              <OButton variant="solid" color="primary" size="medium" round="pill" @click="executePipeline">执行流水线</OButton>
+            </div>
           </div>
 
-          <!-- 来自用例看板"跳转至流水线"时显示：选中用例提示 + 执行按钮 -->
-          <div v-if="runPipelineCaseIds.length" class="proj-detail__pipeline-case-notice">
-            <span class="proj-detail__pipeline-notice-icon">☑</span>
-            <span>
-              已从用例看板选择 <strong>{{ runPipelineCaseIds.length }}</strong> 个用例，
-              点击执行将触发对应测试流水线
-            </span>
-            <OButton
-              variant="solid" color="primary" size="small" round="pill"
-              @click="OMessage.success(`已触发 ${runPipelineCaseIds.length} 个用例的流水线执行`); runPipelineCaseIds = []"
-            >
-              立即执行
-            </OButton>
-            <OButton variant="text" size="small" round="pill" @click="runPipelineCaseIds = []">清除</OButton>
-          </div>
+          <!-- 流水线历史记录表格 -->
+          <h3 class="proj-detail__table-title">流水线历史记录表格</h3>
 
           <OTable :columns="pipelineColumns" :data="pipelineTasks">
             <template #td_buildStatus="{ row }">
@@ -784,7 +886,6 @@ const handleAddProjectConfirm = () => {
               <OUpload
                 v-model="pipelineDialog.uploadFiles"
                 accept=".rpm,.tar.gz,.zip"
-                draggable
                 :multiple="false"
                 :upload-request="handleBuildUpload"
                 btn-label="选择构建包"
@@ -1065,6 +1166,12 @@ const handleAddProjectConfirm = () => {
   }
 
   &__selector { width: 240px; }
+  &__selector-label {
+    color: var(--o-color-info2);
+    font-size: var(--o-r-font_size-tip1);
+    line-height: var(--o-r-line_height-tip1);
+    flex-shrink: 0;
+  }
 
   &__status-tag { flex-shrink: 0; }
 
@@ -1082,12 +1189,7 @@ const handleAddProjectConfirm = () => {
     @media (max-width: 1200px) { flex-direction: column; }
   }
 
-  &__form-card { flex: 1; }
-  &__hw-card {
-    width: 320px;
-    flex-shrink: 0;
-    @media (max-width: 1200px) { width: 100%; }
-  }
+  &__form-card { width: 100%; }
 
   &__section-title {
     display: flex;
@@ -1096,7 +1198,7 @@ const handleAddProjectConfirm = () => {
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-text1);
     line-height: var(--o-r-line_height-text1);
-    font-weight: 600;
+    font-weight: var(--o-font_weight-bold);
     margin-bottom: var(--o-r-gap-3);
   }
 
@@ -1115,13 +1217,6 @@ const handleAddProjectConfirm = () => {
     display: flex;
     flex-wrap: wrap;
     gap: var(--o-r-gap-5) var(--o-r-grid-column-gutter);
-    margin-bottom: var(--o-r-gap-5);
-  }
-
-  &__hw-grid {
-    display: flex;
-    flex-direction: column;
-    gap: var(--o-r-gap-5);
     margin-bottom: var(--o-r-gap-5);
   }
 
@@ -1163,25 +1258,124 @@ const handleAddProjectConfirm = () => {
   }
 
   &__pipeline { margin-top: var(--o-r-gap-5); }
-  &__pipeline-toolbar { margin-bottom: var(--o-r-gap-4); }
 
-  // 来自用例看板的选用例提示条
-  &__pipeline-case-notice {
+  // 执行配置区（原弹窗内容）
+  &__pipeline-execute {
+    padding: var(--o-r-gap-5) var(--o-r-gap-6);
+    margin-bottom: var(--o-r-gap-5);
+    background-color: var(--o-color-fill2);
+    border-radius: var(--o-radius_control-m);
+    box-shadow: var(--o-shadow-1);
+  }
+
+  // 表格标题
+  &__table-title {
+    font-size: var(--o-r-font_size-text1);
+    font-weight: var(--o-font_weight-bold);
+    color: var(--o-color-info1);
+    margin: 0 0 var(--o-r-gap-4) 0;
+  }
+}
+
+// ── 执行配置区内联样式 ──────────────────────────────────────────────────────
+.pl-execute {
+  &__section-title {
     display: flex;
     align-items: center;
-    gap: var(--o-r-gap-3);
-    padding: var(--o-r-gap-3) var(--o-r-gap-4);
-    margin-bottom: var(--o-r-gap-5);
-    background-color: var(--o-color-primary4-light);
-    border-radius: var(--o-radius_control-m);
-    color: var(--o-color-info2);
+    gap: var(--o-r-gap-2);
+    margin-bottom: var(--o-r-gap-4);
+
+    &--mt { margin-top: var(--o-r-gap-5); }
+  }
+
+  &__bar {
+    width: 4px;
+    height: 16px;
+    background-color: var(--o-color-primary1);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  &__section-title {
+    font-size: var(--o-r-font_size-text1);
+    font-weight: var(--o-font_weight-bold);
+    color: var(--o-color-info1);
+  }
+
+  &__case-count {
+    margin-left: auto;
     font-size: var(--o-r-font_size-tip1);
-    line-height: var(--o-r-line_height-tip1);
-    flex-wrap: wrap;
+    color: var(--o-color-info3);
     strong { color: var(--o-color-primary1); }
   }
 
-  &__pipeline-notice-icon { color: var(--o-color-primary1); }
+  &__build-options {
+    display: flex;
+    gap: var(--o-r-gap-5);
+    margin-bottom: var(--o-r-gap-5);
+  }
+
+  &__build-card {
+    flex: 1;
+    padding: var(--o-r-gap-4) var(--o-r-gap-5);
+    border: 2px solid var(--o-color-control1);
+    border-radius: var(--o-radius_control-m);
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover { border-color: var(--o-color-primary3); }
+
+    &--active {
+      border-color: var(--o-color-primary1);
+      background-color: rgba(0, 47, 167, 0.02);
+    }
+  }
+
+  &__build-desc {
+    margin: var(--o-r-gap-3) 0 0 0;
+    font-size: var(--o-r-font_size-tip1);
+    color: var(--o-color-info3);
+    line-height: var(--o-r-line_height-tip1);
+  }
+
+  &__upload-area { margin-top: var(--o-r-gap-3); }
+
+  &__filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--o-r-gap-3);
+    margin-bottom: var(--o-r-gap-5);
+  }
+
+  &__sel { width: 140px; }
+  &__sel--wide { width: 160px; }
+
+  &__table-wrap {
+    margin-bottom: var(--o-r-gap-4);
+    overflow-x: auto;
+  }
+
+  // ── 表格单元格统一样式 ────────────────────────────────────────────────
+  &__cell-name { color: var(--o-color-info1); font-size: var(--o-r-font_size-tip1); font-weight: var(--o-font_weight-bold); line-height: var(--o-r-line_height-tip1); }
+  &__cell-id { color: var(--o-color-info3); font-size: var(--o-r-font_size-tip2); font-family: var(--o-font_family-code); white-space: nowrap; }
+  &__cell-text { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); line-height: var(--o-r-line_height-tip1); word-break: break-all; }
+  &__cell-script { color: var(--o-color-primary1); font-size: var(--o-r-font_size-tip2); font-family: var(--o-font_family-code); word-break: break-all; line-height: var(--o-r-line_height-tip2); }
+  &__cell-plain { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); white-space: nowrap; }
+
+  &__pagination {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: var(--o-r-gap-5);
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--o-r-gap-3);
+    padding-top: var(--o-r-gap-4);
+    border-top: 1px solid var(--o-color-control4);
+  }
 }
 
 
@@ -1221,7 +1415,7 @@ const handleAddProjectConfirm = () => {
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-text1);
     line-height: var(--o-r-line_height-text1);
-    font-weight: 600;
+    font-weight: var(--o-font_weight-bold);
   }
 
   // 与页面节title相同的左侧色条
@@ -1268,11 +1462,11 @@ const handleAddProjectConfirm = () => {
     color: var(--o-color-info2);
     font-size: var(--o-r-font_size-tip1);
     line-height: var(--o-r-line_height-tip1);
-    font-weight: 500;
+    font-weight: var(--o-font_weight-regular);
   }
 
   &__required { color: var(--o-color-danger1); margin-right: var(--o-r-gap-1); }
-  &__optional { color: var(--o-color-info4); font-weight: 400; margin-left: 4px; }
+  &__optional { color: var(--o-color-info4); font-weight: var(--o-font_weight-regular); margin-left: 4px; }
 
   // 开始→结束 箭头分隔
   &__arrow {
@@ -1308,7 +1502,7 @@ const handleAddProjectConfirm = () => {
     gap: var(--o-r-gap-2);
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-text1);
-    font-weight: 600;
+    font-weight: var(--o-font_weight-bold);
   }
 
   &__bar {
@@ -1322,7 +1516,7 @@ const handleAddProjectConfirm = () => {
     margin-left: auto;
     color: var(--o-color-info3);
     font-size: var(--o-r-font_size-tip1);
-    font-weight: 400;
+    font-weight: var(--o-font_weight-regular);
     strong { color: var(--o-color-primary1); }
   }
 
@@ -1349,7 +1543,7 @@ const handleAddProjectConfirm = () => {
     }
   }
 
-  &__build-radio { font-weight: 600; pointer-events: none; }
+  &__build-radio { font-weight: var(--o-font_weight-bold); pointer-events: none; }
 
   &__build-desc {
     margin: 0;
@@ -1380,28 +1574,27 @@ const handleAddProjectConfirm = () => {
   // 表格
   &__table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-  // 用例名称列
+  // ── 表格单元格统一样式（与 pl-execute 保持一致）─────────────────────
   &__cell-name {
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-tip1);
     line-height: var(--o-r-line_height-tip1);
-    font-weight: 500;
+    font-weight: var(--o-font_weight-regular);
     display: block;
     word-break: break-all;
   }
 
-  // 用例编号列
   &__cell-id {
     color: var(--o-color-info3);
     font-size: var(--o-r-font_size-tip2);
-    font-family: monospace;
-    display: block;
-    word-break: break-all;
+    font-family: var(--o-font_family-code);
+    white-space: nowrap;
   }
 
   &__cell-text {
     color: var(--o-color-info2);
     font-size: var(--o-r-font_size-tip1);
+    line-height: var(--o-r-line_height-tip1);
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
@@ -1410,19 +1603,18 @@ const handleAddProjectConfirm = () => {
   }
 
   &__cell-script {
-    color: var(--o-color-info3);
+    color: var(--o-color-primary1);
     font-size: var(--o-r-font_size-tip2);
-    font-family: monospace;
+    font-family: var(--o-font_family-code);
     word-break: break-all;
     max-width: 200px;
     display: block;
+    line-height: var(--o-r-line_height-tip2);
   }
 
-  // 普通短文本列（特性、最后执行人、测试类型）
   &__cell-plain {
     color: var(--o-color-info2);
     font-size: var(--o-r-font_size-tip1);
-    line-height: var(--o-r-line_height-tip1);
     white-space: nowrap;
   }
 
@@ -1451,7 +1643,7 @@ const handleAddProjectConfirm = () => {
     gap: var(--o-r-gap-2);
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-text1);
-    font-weight: 600;
+    font-weight: var(--o-font_weight-bold);
   }
 
   &__bar {
@@ -1465,7 +1657,7 @@ const handleAddProjectConfirm = () => {
     margin-left: auto;
     color: var(--o-color-info4);
     font-size: var(--o-r-font_size-tip2);
-    font-weight: 400;
+    font-weight: var(--o-font_weight-regular);
   }
 
   // 2列网格
@@ -1486,7 +1678,7 @@ const handleAddProjectConfirm = () => {
   &__label {
     color: var(--o-color-info2);
     font-size: var(--o-r-font_size-tip1);
-    font-weight: 500;
+    font-weight: var(--o-font_weight-regular);
   }
 
   &__required { color: var(--o-color-danger1); margin-right: var(--o-r-gap-1); }
@@ -1510,7 +1702,7 @@ const handleAddProjectConfirm = () => {
     flex-shrink: 0;
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-text1);
-    font-weight: 600;
+    font-weight: var(--o-font_weight-bold);
   }
 
   &__timeline-dates {
@@ -1559,28 +1751,32 @@ const handleAddProjectConfirm = () => {
 }
 </style>
 
-<!-- 弹窗内表格横向滚动：OTable 内置 overflow:hidden，必须全局覆盖 -->
+<!-- 弹窗/执行区内表格横向滚动：OTable 内置 overflow:hidden，必须全局覆盖 -->
 <style>
-.pl-dialog__table-wrap .o-table-wrap {
+.pl-dialog__table-wrap .o-table-wrap,
+.pl-execute__table-wrap .o-table-wrap {
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
 }
-.pl-dialog__table-wrap table {
+.pl-dialog__table-wrap table,
+.pl-execute__table-wrap table {
   min-width: 1692px;
   table-layout: fixed;
-  /* word-break 不加在 table 层，各列由 cell-text/cell-script/cell-name 自行控制 */
 }
-.pl-dialog__table-wrap th {
+.pl-dialog__table-wrap th,
+.pl-execute__table-wrap th {
   white-space: normal;
   word-break: break-word;
 }
-/* 数据单元格仅超长时截断，不整体隐藏 */
-.pl-dialog__table-wrap td:not(:first-child) {
+.pl-dialog__table-wrap td:not(:first-child),
+.pl-execute__table-wrap td:not(:first-child) {
   overflow: hidden;
 }
 .pl-dialog__table-wrap th:first-child,
-.pl-dialog__table-wrap td:first-child {
+.pl-dialog__table-wrap td:first-child,
+.pl-execute__table-wrap th:first-child,
+.pl-execute__table-wrap td:first-child {
   overflow: visible;
   text-align: center;
   padding-left: 16px;

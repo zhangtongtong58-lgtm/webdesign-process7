@@ -18,7 +18,7 @@ body {
   padding: 0;
   background-color: var(--o-color-fill1);
   color: var(--o-color-info1);
-  font-family: 'HarmonyOS Sans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  font-family: var(--o-font_family);
   font-size: var(--o-r-font_size-text1);
   line-height: var(--o-r-line_height-text1);
 }

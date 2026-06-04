@@ -113,13 +113,13 @@ const allChecked = computed({
 interface AddCaseForm {
   name: string; testId: string; level: string
   precondition: string; testSteps: string; expectedResult: string
-  automationScript: string; feature: string; testType: string; isAutomated: boolean
+  automationScript: string; feature: string; testType: string; isAutomated: string
 }
 
 const EMPTY_CASE: AddCaseForm = {
   name: '', testId: '', level: '',
   precondition: '', testSteps: '', expectedResult: '',
-  automationScript: '', feature: '', testType: '', isAutomated: false,
+  automationScript: '', feature: '', testType: '', isAutomated: '',
 }
 
 const addDialog = reactive({ visible: false, form: { ...EMPTY_CASE } as AddCaseForm })
@@ -214,58 +214,68 @@ const confirmBatchDelete = () => {
   <div class="tc-tab">
     <!-- 从补丁看板"查看对应用例"跳转时显示过滤提示 -->
     <div v-if="props.patchIds?.length" class="tc-tab__patch-notice">
-      <span class="tc-tab__notice-icon">☑</span>
+      <span class="tc-tab__notice-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12.0312 2.34969C13.6625 2.34969 15.2371 2.75343 16.6415 3.51339C16.9815 3.69739 17.108 4.12218 16.924 4.46218C16.74 4.80219 16.3152 4.92867 15.9752 4.74467C14.7742 4.09476 13.4284 3.74969 12.0312 3.74969C7.44721 3.74969 3.73118 7.46573 3.73118 12.0497C3.73118 16.6337 7.44721 20.3497 12.0312 20.3497C16.6151 20.3497 20.3312 16.6337 20.3312 12.0497C20.3312 9.98725 19.577 8.04389 18.234 6.53456C17.977 6.24575 18.0028 5.80329 18.2916 5.54629C18.5804 5.2893 19.0229 5.31509 19.2799 5.60391C20.8489 7.36716 21.7312 9.64078 21.7312 12.0497C21.7312 17.4069 17.3883 21.7497 12.0312 21.7497C6.67402 21.7497 2.33118 17.4069 2.33118 12.0497C2.33118 6.69253 6.67401 2.34969 12.0312 2.34969ZM13.1333 7.65356C13.1333 8.27889 12.6253 8.78685 12 8.78685C11.3747 8.78685 10.8667 8.27889 10.8667 7.65356C10.8667 7.02823 11.3747 6.52027 12 6.52027C12.6253 6.52027 13.1333 7.02823 13.1333 7.65356ZM12.7065 9.99663C12.6614 9.65479 12.3695 9.39036 12.0151 9.38905C11.6285 9.38762 11.314 9.69985 11.3125 10.0864L11.2875 16.85L11.2935 16.945C11.3386 17.2869 11.6305 17.5513 11.9849 17.5526C12.3715 17.5541 12.686 17.2418 12.6875 16.8552L12.7125 10.0916L12.7065 9.99663Z" fill="currentColor" fill-opacity="0.8"/>
+        </svg>
+      </span>
       <span>当前仅显示与选中 <strong>{{ props.patchIds.length }}</strong> 个补丁关联的用例</span>
     </div>
 
-    <!-- 筛选器：OSelect outline pill medium -->
-    <div class="tc-tab__filter">
-      <OSelect v-model="filters.level" placeholder="用例级别" variant="outline" size="medium"
-        class="tc-tab__sel" @change="handleQuery">
-        <OOption v-for="o in levelOptions" :key="o.value" :value="o.value" :label="o.label" />
-      </OSelect>
-      <OSelect v-model="filters.testType" placeholder="测试类型" variant="outline" size="medium"
-        class="tc-tab__sel" @change="handleQuery">
-        <OOption v-for="o in testTypeOptions" :key="o.value" :value="o.value" :label="o.label" />
-      </OSelect>
-      <OSelect v-model="filters.autoStatus" placeholder="自动化状态" variant="outline" size="medium"
-        class="tc-tab__sel" @change="handleQuery">
-        <OOption v-for="o in autoOptions" :key="o.value" :value="o.value" :label="o.label" />
-      </OSelect>
-      <OSelect v-model="filters.execResult" placeholder="用例执行结果" variant="outline" size="medium"
-        class="tc-tab__sel tc-tab__sel--wide" @change="handleQuery">
-        <OOption v-for="o in execResultOpts" :key="o.value" :value="o.value" :label="o.label" />
-      </OSelect>
-      <OLink color="primary" class="tc-tab__clear" @click="handleClear">清除筛选</OLink>
-    </div>
+    <!-- 筛选器 + 操作按钮（同一行） -->
+    <div class="tc-tab__filter-row">
+      <div class="tc-tab__filter">
+        <OSelect v-model="filters.level" placeholder="用例级别" variant="outline" size="medium"
+          class="tc-tab__sel" @change="handleQuery">
+          <OOption v-for="o in levelOptions" :key="o.value" :value="o.value" :label="o.label" />
+        </OSelect>
+        <OSelect v-model="filters.testType" placeholder="测试类型" variant="outline" size="medium"
+          class="tc-tab__sel" @change="handleQuery">
+          <OOption v-for="o in testTypeOptions" :key="o.value" :value="o.value" :label="o.label" />
+        </OSelect>
+        <OSelect v-model="filters.autoStatus" placeholder="自动化状态" variant="outline" size="medium"
+          class="tc-tab__sel" @change="handleQuery">
+          <OOption v-for="o in autoOptions" :key="o.value" :value="o.value" :label="o.label" />
+        </OSelect>
+        <OSelect v-model="filters.execResult" placeholder="用例执行结果" variant="outline" size="medium"
+          class="tc-tab__sel tc-tab__sel--wide" @change="handleQuery">
+          <OOption v-for="o in execResultOpts" :key="o.value" :value="o.value" :label="o.label" />
+        </OSelect>
+        <OLink color="primary" class="tc-tab__clear" @click="handleClear">清除筛选</OLink>
+      </div>
 
-    <div class="tc-tab__toolbar">
-      <OButton variant="solid" color="primary" size="medium" @click="openAddDialog">
-        {{ t('tc.create') }}
-      </OButton>
-      <OButton variant="outline" size="medium" @click="importDialog.visible = true">
-        {{ t('tc.importBtn') }}
-      </OButton>
-      <!-- 导出：下拉支持全部/所选 -->
-      <ODropdown trigger="click">
-        <OButton variant="outline" size="medium">
-          {{ t('tc.exportBtn') }}
-          <template #suffix>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="margin-left:2px">
-              <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </template>
+      <div class="tc-tab__actions">
+        <OButton variant="solid" color="primary" size="medium" @click="openAddDialog">
+          {{ t('tc.create') }}
         </OButton>
-        <template #dropdown>
-          <div class="export-menu">
-            <div class="export-menu__item" @click="handleExport('all')">导出全部</div>
-            <div class="export-menu__item" @click="handleExport('selected')">
-              导出所选
-              <span v-if="selectedIds.length > 0" class="export-menu__count">（{{ selectedIds.length }}条）</span>
+        <OButton variant="outline" size="medium" @click="handleRun()">
+          执行测试
+        </OButton>
+        <OButton variant="outline" size="medium" @click="handleToPipeline()">
+          跳转至流水线
+        </OButton>
+        <ODropdown trigger="click">
+          <OButton variant="outline" size="medium">
+            更多操作
+            <template #suffix>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0.250616 0.205025C2.94745e-05 0.455612 -0.0208527 0.848918 0.187969 1.12329L0.250616 1.19497L5.26695 6.21131C5.36737 6.31173 5.38172 6.46563 5.30999 6.58133L5.26695 6.63558L0.205025 11.6975C-0.0683418 11.9709 -0.0683418 12.4141 0.205025 12.6875C0.455612 12.938 0.848918 12.9589 1.12329 12.7501L1.19497 12.6875L6.2569 7.62553C6.88585 6.99658 6.91895 5.99741 6.35621 5.32949L6.2569 5.22136L1.24057 0.205025C0.967198 -0.0683418 0.523983 -0.0683418 0.250616 0.205025Z" fill="currentColor" fill-opacity="0.8" transform="matrix(0,1,1,0,5.55376,8.62259)"/>
+              </svg>
+            </template>
+          </OButton>
+          <template #dropdown>
+            <div class="more-menu">
+              <div class="more-menu__item" @click="importDialog.visible = true">{{ t('tc.importBtn') }}</div>
+              <div class="more-menu__item" @click="handleExport('all')">导出全部</div>
+              <div class="more-menu__item" @click="handleExport('selected')">
+                导出所选
+                <span v-if="selectedIds.length > 0" class="more-menu__count">（{{ selectedIds.length }}条）</span>
+              </div>
+              <div class="more-menu__item more-menu__item--danger" @click="handleBatchDelete()">批量删除</div>
             </div>
-          </div>
-        </template>
-      </ODropdown>
+          </template>
+        </ODropdown>
+      </div>
     </div>
 
     <div class="tc-tab__table-wrap">
@@ -319,53 +329,33 @@ const confirmBatchDelete = () => {
     </div>
 
     <div class="tc-tab__bottom">
-      <div class="tc-tab__bottom-actions">
-        <OButton variant="solid" color="primary" size="medium" @click="handleRun">
-          {{ t('tc.run') }}
-        </OButton>
-        <OButton variant="outline" size="medium" @click="handleToPipeline">
-          {{ t('tc.toPipeline') }}
-        </OButton>
-        <OButton variant="outline" color="danger" size="medium" @click="handleBatchDelete">
-          {{ t('tc.batchDelete') }}
-        </OButton>
-      </div>
       <OPagination :total="filtered.length" :page="page" :page-size="pageSize" :page-sizes="[10,20,50]" @change="onPageChange" />
     </div>
 
-    <!-- ── 执行结果面板（奇次成功/偶次失败）──────────────────────────────────── -->
-    <transition name="exec-slide">
-      <div v-if="execResult.visible"
-           class="exec-panel"
-           :class="execResult.success ? 'exec-panel--success' : 'exec-panel--fail'"
-      >
-        <div class="exec-panel__header">
-          <OTag :color="execResult.success ? 'success' : 'danger'" size="medium">
-            {{ execResult.success ? '测试通过' : '测试失败' }}
-          </OTag>
-          <span class="exec-panel__summary">
-            共 {{ execResult.caseResults.length }} 条，
-            通过 {{ execResult.caseResults.filter(c => c.status === 'pass').length }} 条
-            <template v-if="!execResult.success">
-              ，失败 {{ execResult.caseResults.filter(c => c.status === 'fail').length }} 条
-            </template>
-          </span>
-          <OButton variant="text" size="small" @click="execResult.visible = false">关闭</OButton>
-        </div>
-        <div class="exec-panel__body">
-          <div v-for="item in execResult.caseResults" :key="item.id" class="exec-panel__row">
+    <!-- 执行结果弹窗 -->
+    <ODialog v-model:visible="execResult.visible" :title="execResult.success ? '测试通过' : '测试失败'" class="result-dialog">
+      <div class="exec-dialog-body">
+        <p class="exec-dialog-body__summary">
+          共 {{ execResult.caseResults.length }} 条，
+          通过 {{ execResult.caseResults.filter(c => c.status === 'pass').length }} 条
+          <template v-if="!execResult.success">
+            ，失败 {{ execResult.caseResults.filter(c => c.status === 'fail').length }} 条
+          </template>
+        </p>
+        <div class="exec-dialog-body__list">
+          <div v-for="item in execResult.caseResults" :key="item.id" class="exec-dialog-body__row">
             <OTag :color="item.status === 'pass' ? 'success' : 'danger'" size="medium">
               {{ item.status === 'pass' ? 'Pass' : 'Fail' }}
             </OTag>
-            <span class="exec-panel__id">{{ item.id }}</span>
-            <span class="exec-panel__name">{{ item.name }}</span>
-            <span v-if="item.status === 'fail'" class="exec-panel__err">
+            <span class="exec-dialog-body__id">{{ item.id }}</span>
+            <span class="exec-dialog-body__name">{{ item.name }}</span>
+            <span v-if="item.status === 'fail'" class="exec-dialog-body__err">
               AssertionError: 执行结果与预期不符，请检查测试环境或用例配置
             </span>
           </div>
         </div>
       </div>
-    </transition>
+    </ODialog>
   </div>
 
   <!-- ══ 批量删除确认弹窗 ════════════════════════════════════════════════════════ -->
@@ -401,7 +391,7 @@ const confirmBatchDelete = () => {
           <OInput v-model="addDialog.form.testId" placeholder="例：PCIE_DPC_FUNC_003" clearable />
         </div>
         <div class="tc-form__field">
-          <label class="tc-form__label">级别</label>
+          <label class="tc-form__label"><span class="tc-form__required">*</span>级别</label>
           <OSelect v-model="addDialog.form.level" placeholder="请选择">
             <OOption v-for="o in levelOptions" :key="o.value" :value="o.value" :label="o.label" />
           </OSelect>
@@ -413,18 +403,18 @@ const confirmBatchDelete = () => {
           </OSelect>
         </div>
         <div class="tc-form__field">
-          <label class="tc-form__label">特性</label>
+          <label class="tc-form__label"><span class="tc-form__required">*</span>特性</label>
           <OInput v-model="addDialog.form.feature" placeholder="例：PCIe DPC中断" clearable />
         </div>
         <div class="tc-form__field">
-          <label class="tc-form__label">自动化类型</label>
-          <div class="tc-form__switch-row">
-            <OSwitch v-model="addDialog.form.isAutomated" />
-            <span class="tc-form__switch-label">{{ addDialog.form.isAutomated ? 'TRUE（已自动化）' : 'FALSE（未自动化）' }}</span>
-          </div>
+          <label class="tc-form__label"><span class="tc-form__required">*</span>自动化类型</label>
+          <OSelect v-model="addDialog.form.isAutomated" placeholder="请选择">
+            <OOption value="true" label="TRUE（已自动化）" />
+            <OOption value="false" label="FALSE（未自动化）" />
+          </OSelect>
         </div>
         <div class="tc-form__field tc-form__field--full">
-          <label class="tc-form__label">自动化脚本/路径</label>
+          <label class="tc-form__label"><span class="tc-form__required">*</span>自动化脚本/路径</label>
           <OInput v-model="addDialog.form.automationScript" placeholder="例：D06:/test_cases/pcie/test.py::TestCase::test_dpc" clearable />
         </div>
       </div>
@@ -435,15 +425,15 @@ const confirmBatchDelete = () => {
       <div class="tc-form__section-title"><span class="tc-form__bar" />测试内容</div>
       <div class="tc-form__grid">
         <div class="tc-form__field tc-form__field--full">
-          <label class="tc-form__label">预置条件</label>
+          <label class="tc-form__label"><span class="tc-form__required">*</span>预置条件</label>
           <OTextarea v-model="addDialog.form.precondition" placeholder="描述测试前的准备条件" :rows="3" />
         </div>
         <div class="tc-form__field tc-form__field--full">
-          <label class="tc-form__label">测试步骤</label>
+          <label class="tc-form__label"><span class="tc-form__required">*</span>测试步骤</label>
           <OTextarea v-model="addDialog.form.testSteps" placeholder="逐步描述测试操作" :rows="4" />
         </div>
         <div class="tc-form__field tc-form__field--full">
-          <label class="tc-form__label">预期结果</label>
+          <label class="tc-form__label"><span class="tc-form__required">*</span>预期结果</label>
           <OTextarea v-model="addDialog.form.expectedResult" placeholder="描述期望的测试结果" :rows="3" />
         </div>
       </div>
@@ -458,21 +448,17 @@ const confirmBatchDelete = () => {
   </ODialog>
 
   <!-- ══ 导入弹窗（Excel批量上传）════════════════════════════════════════════════
-       OUpload draggable，支持 .xlsx / .xls / .csv
+       OUpload 点击上传，支持 .xlsx / .xls / .csv
   ══ -->
-  <ODialog v-model:visible="importDialog.visible" title="批量导入用例" size="medium">
+  <ODialog v-model:visible="importDialog.visible" title="批量导入用例" size="medium" class="import-dialog">
     <div class="tc-import-body">
-      <div class="tc-import-body__tips">
-        <p class="tc-import-body__text">
-          请按照模板格式准备 Excel 文件，支持 <strong>.xlsx</strong>、<strong>.xls</strong>、<strong>.csv</strong> 格式。
-        </p>
+      <p class="tc-import-body__text">
+        请按照模板格式准备 Excel 文件，支持 <strong>.xlsx</strong>、<strong>.xls</strong>、<strong>.csv</strong> 格式。
         <OLink color="primary" href="javascript:void(0)" class="tc-import-body__tmpl">下载导入模板</OLink>
-      </div>
-      <ODivider />
+      </p>
       <OUpload
         v-model="importFiles"
         accept=".xlsx,.xls,.csv"
-        draggable
         :multiple="false"
         :upload-request="handleImportUpload"
         btn-label="选择 Excel 文件"
@@ -481,8 +467,6 @@ const confirmBatchDelete = () => {
     </div>
     <template #footer>
       <div class="tc-dialog-footer">
-        <OButton variant="outline" size="medium"
-          @click="importDialog.visible = false; importFiles = []">取消</OButton>
         <OButton variant="solid" color="primary" size="medium" @click="handleImportConfirm">
           确认导入
         </OButton>
@@ -501,7 +485,7 @@ const confirmBatchDelete = () => {
   &--success { border-left-color: var(--o-color-success1); .stat-card__num { color: var(--o-color-success1); } }
   &--warning { border-left-color: var(--o-color-warning1); .stat-card__num { color: var(--o-color-warning1); } }
   &--danger  { border-left-color: var(--o-color-danger1);  .stat-card__num { color: var(--o-color-danger1);  } }
-  &__num   { font-size: var(--o-r-font_size-h1); font-weight: 700; }
+  &__num   { font-size: var(--o-r-font_size-h1); font-weight: var(--o-font_weight-bold); }
   &__label { color: var(--o-color-info3); font-size: var(--o-r-font_size-tip1); }
 }
 
@@ -522,28 +506,49 @@ const confirmBatchDelete = () => {
   }
   &__notice-icon { color: var(--o-color-primary1); }
   &__stats { display: flex; gap: var(--o-r-grid-column-gutter); margin-bottom: var(--o-r-gap-6); }
-  &__filter { display: flex; flex-wrap: wrap; align-items: center; gap: var(--o-r-gap-3); margin-bottom: var(--o-r-gap-4); }
+  &__filter { display: flex; flex-wrap: wrap; align-items: center; gap: var(--o-r-gap-3); flex: 1; min-width: 0; }
   &__sel { width: 130px; }
   &__sel--wide { width: 150px; }
   &__clear { font-size: var(--o-r-font_size-tip1); color: var(--o-color-info3); cursor: pointer; white-space: nowrap; }
-  &__toolbar { display: flex; gap: var(--o-r-gap-3); margin-bottom: var(--o-r-gap-4); }
-  &__table-wrap { margin-bottom: var(--o-r-gap-3); }
-  &__cell-id { color: var(--o-color-info3); font-size: var(--o-r-font_size-tip2); font-family: monospace; white-space: nowrap; }
-  &__cell-text { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; max-width: 200px; }
-  &__cell-script { font-size: var(--o-r-font_size-tip2); font-family: monospace; word-break: break-all; max-width: 240px; display: block; }
+
+  &__filter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--o-r-gap-4);
+    flex-wrap: wrap;
+    margin-bottom: var(--o-r-gap-5);
+  }
+  &__filter { display: flex; flex-wrap: wrap; gap: var(--o-r-gap-3); align-items: center; flex: 1; min-width: 0; }
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--o-r-gap-3);
+    flex-shrink: 0;
+  }
+  &__table-wrap {
+    margin-bottom: var(--o-r-gap-5);
+  }
+
+  // ── 表格单元格统一样式 ────────────────────────────────────────────────
+  &__cell-id { color: var(--o-color-info3); font-size: var(--o-r-font_size-tip2); font-family: var(--o-font_family-code); white-space: nowrap; }
+  &__cell-text { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); line-height: var(--o-r-line_height-tip1); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; max-width: 200px; }
+  &__cell-script { color: var(--o-color-primary1); font-size: var(--o-r-font_size-tip2); font-family: var(--o-font_family-code); word-break: break-all; max-width: 240px; display: block; line-height: var(--o-r-line_height-tip2); }
   &__cell-plain { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); white-space: nowrap; }
   &__muted { color: var(--o-color-info3); font-size: var(--o-r-font_size-tip1); }
   &__action-cell { display: flex; gap: var(--o-r-gap-2); white-space: nowrap; }
-  &__bottom { display: flex; align-items: center; justify-content: space-between; margin-top: var(--o-r-gap-5); padding-top: var(--o-r-gap-4); border-top: 1px solid var(--o-color-control4); }
-  &__bottom-actions { display: flex; gap: var(--o-r-gap-3); }
+  &__bottom { display: flex; align-items: center; justify-content: flex-end; margin-top: var(--o-r-gap-5); padding-top: var(--o-r-gap-4); border-top: 1px solid var(--o-color-control4); }
 }
 
 // ── 新增用例表单 ───────────────────────────────────────────────────────────────
 .tc-form {
   display: flex; flex-direction: column; gap: var(--o-r-gap-5);
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: var(--o-r-gap-2);
   &__section-title {
     display: flex; align-items: center; gap: var(--o-r-gap-2);
-    color: var(--o-color-info1); font-size: var(--o-r-font_size-text1); font-weight: 600;
+    color: var(--o-color-info1); font-size: var(--o-r-font_size-text1); font-weight: var(--o-font_weight-bold);
   }
   &__bar { display: inline-block; width: 4px; height: 16px; background-color: var(--o-color-primary1); border-radius: 2px; flex-shrink: 0; }
   &__grid { display: flex; flex-wrap: wrap; gap: var(--o-r-gap-4) var(--o-r-grid-column-gutter); }
@@ -552,7 +557,7 @@ const confirmBatchDelete = () => {
     display: flex; flex-direction: column; gap: var(--o-r-gap-2);
     &--full { width: 100%; }
   }
-  &__label { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); font-weight: 500; }
+  &__label { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); font-weight: var(--o-font_weight-regular); }
   &__required { color: var(--o-color-danger1); margin-right: var(--o-r-gap-1); }
   &__switch-row { display: flex; align-items: center; gap: var(--o-r-gap-3); padding-top: 4px; }
   &__switch-label { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); }
@@ -560,10 +565,9 @@ const confirmBatchDelete = () => {
 
 // ── 导入弹窗 ──────────────────────────────────────────────────────────────────
 .tc-import-body {
-  display: flex; flex-direction: column; gap: var(--o-r-gap-4);
-  &__tips { display: flex; align-items: center; justify-content: space-between; gap: var(--o-r-gap-4); flex-wrap: wrap; }
-  &__text { margin: 0; color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); strong { color: var(--o-color-primary1); } }
-  &__tmpl { white-space: nowrap; font-size: var(--o-r-font_size-tip1); }
+  display: flex; flex-direction: column; gap: var(--o-r-gap-3);
+  &__text { margin: 0; color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); line-height: var(--o-r-line_height-tip1); strong { color: var(--o-color-primary1); } }
+  &__tmpl { margin-left: var(--o-r-gap-2); white-space: nowrap; font-size: var(--o-r-font_size-tip1); }
   &__upload { width: 100%; }
 }
 
@@ -572,41 +576,36 @@ const confirmBatchDelete = () => {
   display: flex; justify-content: flex-end; gap: var(--o-r-gap-3);
 }
 
-// ── 执行结果面板 ──────────────────────────────────────────────────────────────
-.exec-panel {
-  margin-top: var(--o-r-gap-4);
-  border-radius: var(--o-radius_control-m);
-  border: 1px solid var(--o-color-control1);
-  overflow: hidden;
-
-  &--success { border-color: var(--o-color-success1); }
-  &--fail    { border-color: var(--o-color-danger1);  }
-
-  &__header {
-    display: flex;
-    align-items: center;
-    gap: var(--o-r-gap-3);
-    padding: var(--o-r-gap-3) var(--o-r-gap-4);
-    background-color: var(--o-color-fill3);
+// ── 结果弹窗（高度自适应）────────────────────────────────────────────────────
+.result-dialog {
+  :deep(.o-dialog__body) {
+    max-height: none;
   }
+}
 
+// ── 导入弹窗（高度自适应 + 紧凑布局）────────────────────────────────────────────
+.import-dialog {
+  :deep(.o-dialog__body) {
+    max-height: none !important;
+    padding: 16px 20px !important;
+  }
+}
+
+// ── 执行结果弹窗内容 ──────────────────────────────────────────────────────────
+.exec-dialog-body {
   &__summary {
-    flex: 1;
+    margin: 0 0 var(--o-r-gap-3) 0;
     color: var(--o-color-info2);
     font-size: var(--o-r-font_size-tip1);
     line-height: var(--o-r-line_height-tip1);
   }
-
-  &__body {
-    padding: var(--o-r-gap-3) var(--o-r-gap-4);
-    background-color: var(--o-color-fill2);
+  &__list {
+    max-height: 300px;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: var(--o-r-gap-2);
-    max-height: 240px;
-    overflow-y: auto;
   }
-
   &__row {
     display: flex;
     align-items: flex-start;
@@ -615,31 +614,24 @@ const confirmBatchDelete = () => {
     border-bottom: 1px solid var(--o-color-control4);
     &:last-child { border-bottom: none; }
   }
-
   &__id {
     color: var(--o-color-info3);
     font-size: var(--o-r-font_size-tip2);
-    font-family: monospace;
+    font-family: var(--o-font_family-code);
     white-space: nowrap;
     min-width: 140px;
   }
-
   &__name {
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-tip1);
     flex: 1;
   }
-
   &__err {
     color: var(--o-color-danger1);
     font-size: var(--o-r-font_size-tip2);
     line-height: var(--o-r-line_height-tip2);
   }
 }
-
-// 滑入动画
-.exec-slide-enter-active { transition: all var(--o-duration-m1) var(--o-easing-standard); }
-.exec-slide-enter-from   { opacity: 0; transform: translateY(-6px); }
 
 // ── 批量删除确认弹窗 ──────────────────────────────────────────────────────────
 .tc-delete-body {
@@ -685,16 +677,35 @@ const confirmBatchDelete = () => {
   white-space: normal;
   word-break: break-all;
 }
-/* 导出下拉菜单 */
-.export-menu { padding: 4px 0; min-width: 120px; }
-.export-menu__item {
-  padding: 8px 16px;
-  font-size: 14px;
-  color: rgba(0,0,0,.85);
-  cursor: pointer;
-  display: flex; align-items: center; gap: 4px;
-  transition: background-color .15s;
+/* 更多操作下拉菜单 */
+.more-menu {
+  padding: var(--o-r-gap-1) 0;
+  min-width: 140px;
 }
-.export-menu__item:hover { background-color: rgba(0,0,0,.04); }
-.export-menu__count { color: rgba(0,0,0,.45); font-size: 12px; }
+.more-menu__item {
+  padding: 8px 16px;
+  font-size: var(--o-r-font_size-tip1);
+  color: var(--o-color-info1);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.more-menu__item:hover {
+  background-color: var(--o-color-fill3);
+}
+.more-menu__item--danger {
+  color: var(--o-color-danger1);
+}
+.more-menu__item--danger:hover {
+  background-color: rgba(var(--o-danger1-rgb, 230, 0, 18), 0.06);
+}
+.more-menu__count {
+  color: var(--o-color-info4);
+  font-size: var(--o-r-font_size-tip2);
+}
+
+/* 全局样式：强制覆盖导入弹窗高度和内边距 */
+.import-dialog .o-dialog__body {
+  max-height: none !important;
+  padding: 16px 20px !important;
+}
 </style>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import { OSelect, OOption, OButton, OTag, OTable, OPagination } from '@opensig/opendesign'
+import { OSelect, OOption, OButton, OTag, OTable, OPagination, OMessage, ORadio, ORadioGroup, OCheckbox } from '@opensig/opendesign'
 import { useAuth } from '../../composables/useAuth'
 import {
   MOCK_PIPELINE_TASKS, MOCK_PROJECTS, type PipelineTask, type PipelineStatus,
@@ -96,6 +96,53 @@ const stats = computed(() => ({
   failed: baseRuns.value.filter((r) => r.status === 'failed').length,
   running: baseRuns.value.filter((r) => r.status === 'running').length,
 }))
+
+// 执行配置表单
+const executeForm = reactive({
+  buildMode: 'auto',
+  projectId: '',
+  patchScope: 'all',
+  executeMode: 'full',
+})
+
+const caseFilters = reactive({
+  level: '',
+  testType: '',
+  autoStatus: '',
+  execResult: '',
+})
+
+const levelOptions = [
+  { value: '', label: '用例级别' },
+  { value: 'Level 1', label: 'Level 1' }, { value: 'Level 1/2', label: 'Level 1/2' },
+  { value: 'Level 0/1/2/3', label: 'Level 0/1/2/3' }, { value: 'Level 2', label: 'Level 2' },
+]
+const testTypeOptions = [
+  { value: '', label: '测试类型' },
+  { value: 'functional', label: '功能' }, { value: 'performance', label: '性能' },
+  { value: 'reliability', label: '可靠性' }, { value: 'compatibility', label: '兼容性' },
+]
+const autoOptions = [{ value: '', label: '自动化类型' }, { value: 'true', label: 'TRUE' }, { value: 'false', label: 'FALSE' }]
+const execResultOpts = [
+  { value: '', label: '用例执行结果' },
+  { value: 'passed', label: 'Passed' }, { value: 'fail', label: 'Fail' },
+]
+
+const selectedCaseIds = ref<string[]>([])
+const allCasesSelected = computed(() => selectedCaseIds.value.length > 0)
+
+const handleTrigger = () => {
+  if (executeForm.projectId) {
+    const project = MOCK_PROJECTS.find((p) => p.id === executeForm.projectId)
+    OMessage.success(`已触发流水线执行：${project?.name}`)
+  } else {
+    OMessage.warning('请先配置执行参数')
+  }
+}
+
+const handleClearCaseFilter = () => {
+  Object.assign(caseFilters, { level: '', testType: '', autoStatus: '', execResult: '' })
+}
 </script>
 
 <template>
@@ -132,13 +179,59 @@ const stats = computed(() => ({
         <OButton variant="solid" color="primary" @click="handleQuery" round="pill">{{ t('action.query') }}</OButton>
         <OButton variant="outline" @click="handleReset" round="pill">{{ t('action.reset') }}</OButton>
       </div>
-      <OButton v-if="isAdmin" variant="solid" color="primary" class="pipeline-page__trigger" round="pill">
-        {{ t('pipeline.trigger') }}
-      </OButton>
+    </div>
+
+    <!-- 执行配置区 -->
+    <div v-if="isAdmin" class="pipeline-page__execute">
+      <div class="pipeline-page__section">
+        <span class="pipeline-page__section-bar"></span>
+        <span class="pipeline-page__section-title">构建区</span>
+      </div>
+      <div class="pipeline-page__build-options">
+        <div class="pipeline-page__build-option" :class="{ 'pipeline-page__build-option--active': executeForm.buildMode === 'auto' }" @click="executeForm.buildMode = 'auto'">
+          <ORadioGroup v-model="executeForm.buildMode" direction="horizontal">
+            <ORadio value="auto">自动编译流水线</ORadio>
+          </ORadioGroup>
+          <p class="pipeline-page__build-desc">基线版本：openEuler-24.03-LTS，自动编译当前项目范围内符合入补丁，默认集群执行</p>
+        </div>
+        <div class="pipeline-page__build-option" :class="{ 'pipeline-page__build-option--active': executeForm.buildMode === 'manual' }" @click="executeForm.buildMode = 'manual'">
+          <ORadioGroup v-model="executeForm.buildMode" direction="horizontal">
+            <ORadio value="manual">手动上传</ORadio>
+          </ORadioGroup>
+        </div>
+      </div>
+
+      <div class="pipeline-page__section pipeline-page__section--mt">
+        <span class="pipeline-page__section-bar"></span>
+        <span class="pipeline-page__section-title">用例选择区</span>
+        <span class="pipeline-page__section-count">已选 {{ selectedCaseIds.length }} / 7 个用例</span>
+      </div>
+      <div class="pipeline-page__case-filter">
+        <OSelect v-model="caseFilters.level" placeholder="用例级别" variant="outline" size="medium" class="pipeline-page__case-sel">
+          <OOption v-for="o in levelOptions" :key="o.value" :value="o.value" :label="o.label" />
+        </OSelect>
+        <OSelect v-model="caseFilters.testType" placeholder="测试类型" variant="outline" size="medium" class="pipeline-page__case-sel">
+          <OOption v-for="o in testTypeOptions" :key="o.value" :value="o.value" :label="o.label" />
+        </OSelect>
+        <OSelect v-model="caseFilters.autoStatus" placeholder="自动化类型" variant="outline" size="medium" class="pipeline-page__case-sel">
+          <OOption v-for="o in autoOptions" :key="o.value" :value="o.value" :label="o.label" />
+        </OSelect>
+        <OSelect v-model="caseFilters.execResult" placeholder="用例执行结果" variant="outline" size="medium" class="pipeline-page__case-sel">
+          <OOption v-for="o in execResultOpts" :key="o.value" :value="o.value" :label="o.label" />
+        </OSelect>
+        <OButton variant="text" color="primary" size="medium" @click="handleClearCaseFilter">清除筛选</OButton>
+      </div>
+
+      <div class="pipeline-page__execute-footer">
+        <OButton variant="outline" size="medium" @click="handleReset">取消</OButton>
+        <OButton variant="solid" color="primary" size="medium" @click="handleTrigger">执行流水线</OButton>
+      </div>
     </div>
 
     <!-- Table -->
-    <OTable :columns="columns" :data="pagedRows">
+    <div class="pipeline-page__table-section">
+      <h3 class="pipeline-page__table-title">流水线历史记录表格</h3>
+      <OTable :columns="columns" :data="pagedRows">
       <template #td_status="{ row }">
         <OTag :color="pipelineStatusColor(row.status)" size="medium">{{ row.status }}</OTag>
       </template>
@@ -169,6 +262,7 @@ const stats = computed(() => ({
         </div>
       </template>
     </OTable>
+    </div>
 
     <div class="pipeline-page__pagination">
       <OPagination
@@ -212,7 +306,7 @@ const stats = computed(() => ({
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-h2);
     line-height: var(--o-r-line_height-h2);
-    font-weight: 700;
+    font-weight: var(--o-font_weight-bold);
   }
 
   &__stat-lbl {
@@ -245,6 +339,106 @@ const stats = computed(() => ({
 
   &__trigger {
     margin-left: auto;
+  }
+
+  &__execute {
+    padding: var(--o-r-gap-5) var(--o-r-gap-6);
+    margin-bottom: var(--o-r-gap-5);
+    background-color: var(--o-color-fill2);
+    border-radius: var(--o-radius_control-m);
+    box-shadow: var(--o-shadow-1);
+  }
+
+  &__section {
+    display: flex;
+    align-items: center;
+    gap: var(--o-r-gap-2);
+    margin-bottom: var(--o-r-gap-4);
+
+    &--mt {
+      margin-top: var(--o-r-gap-5);
+    }
+  }
+
+  &__section-bar {
+    width: 4px;
+    height: 16px;
+    background-color: var(--o-color-primary1);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  &__section-title {
+    font-size: var(--o-r-font_size-text1);
+    font-weight: var(--o-font_weight-bold);
+    color: var(--o-color-info1);
+  }
+
+  &__section-count {
+    margin-left: auto;
+    font-size: var(--o-r-font_size-tip1);
+    color: var(--o-color-info3);
+  }
+
+  &__build-options {
+    display: flex;
+    gap: var(--o-r-gap-5);
+    margin-bottom: var(--o-r-gap-5);
+  }
+
+  &__build-option {
+    flex: 1;
+    padding: var(--o-r-gap-4) var(--o-r-gap-5);
+    border: 2px solid var(--o-color-control1);
+    border-radius: var(--o-radius_control-m);
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      border-color: var(--o-color-primary3);
+    }
+
+    &--active {
+      border-color: var(--o-color-primary1);
+      background-color: rgba(0, 47, 167, 0.02);
+    }
+  }
+
+  &__build-desc {
+    margin: var(--o-r-gap-3) 0 0 0;
+    font-size: var(--o-r-font_size-tip1);
+    color: var(--o-color-info3);
+    line-height: var(--o-r-line_height-tip1);
+  }
+
+  &__case-filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--o-r-gap-3);
+    margin-bottom: var(--o-r-gap-5);
+  }
+
+  &__case-sel {
+    width: 140px;
+  }
+
+  &__execute-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: var(--o-r-gap-4);
+    border-top: 1px solid var(--o-color-control4);
+  }
+
+  &__table-section {
+    margin-bottom: var(--o-r-gap-4);
+  }
+
+  &__table-title {
+    font-size: var(--o-r-font_size-text1);
+    font-weight: var(--o-font_weight-bold);
+    color: var(--o-color-info1);
+    margin: 0 0 var(--o-r-gap-4) 0;
   }
 
   &__stage-row {

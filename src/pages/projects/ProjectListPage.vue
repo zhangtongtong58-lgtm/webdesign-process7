@@ -217,7 +217,7 @@ const statusColor = (status: string) => {
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-h4);
     line-height: var(--o-r-line_height-h4);
-    font-weight: 600;
+    font-weight: var(--o-font_weight-bold);
   }
 
   &__card-desc {
@@ -250,7 +250,7 @@ const statusColor = (status: string) => {
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-h3);
     line-height: var(--o-r-line_height-h3);
-    font-weight: 700;
+    font-weight: var(--o-font_weight-bold);
 
     &--good { color: var(--o-color-success1); }
     &--warn { color: var(--o-color-warning1); }

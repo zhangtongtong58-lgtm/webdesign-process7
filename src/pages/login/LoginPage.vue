@@ -121,7 +121,7 @@ const handleLogin = async () => {
     color: var(--o-color-primary1);
     font-size: var(--o-r-font_size-h2);
     line-height: var(--o-r-line_height-h2);
-    font-weight: 700;
+    font-weight: var(--o-font_weight-bold);
   }
 
   &__subtitle {
@@ -148,7 +148,7 @@ const handleLogin = async () => {
     color: var(--o-color-info2);
     font-size: var(--o-r-font_size-text2);
     line-height: var(--o-r-line_height-text2);
-    font-weight: 500;
+    font-weight: var(--o-font_weight-regular);
   }
 
   &__select {
@@ -175,7 +175,7 @@ const handleLogin = async () => {
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-text1);
     line-height: var(--o-r-line_height-text1);
-    font-weight: 600;
+    font-weight: var(--o-font_weight-bold);
   }
 
   &__preview-desc {

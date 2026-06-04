@@ -205,7 +205,7 @@ const pipelineStatusColor = (status: string) => {
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-h2);
     line-height: var(--o-r-line_height-h2);
-    font-weight: 600;
+    font-weight: var(--o-font_weight-bold);
   }
 
   &__desc {
@@ -242,7 +242,7 @@ const pipelineStatusColor = (status: string) => {
     color: var(--o-color-primary1);
     font-size: var(--o-r-font_size-h1);
     line-height: var(--o-r-line_height-h1);
-    font-weight: 700;
+    font-weight: var(--o-font_weight-bold);
   }
 
   &__section {
@@ -261,7 +261,7 @@ const pipelineStatusColor = (status: string) => {
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-h4);
     line-height: var(--o-r-line_height-h4);
-    font-weight: 600;
+    font-weight: var(--o-font_weight-bold);
   }
 
   &__active-runs {
@@ -286,7 +286,7 @@ const pipelineStatusColor = (status: string) => {
     color: var(--o-color-info2);
     font-size: var(--o-r-font_size-text2);
     line-height: var(--o-r-line_height-text2);
-    font-weight: 600;
+    font-weight: var(--o-font_weight-bold);
   }
 
   &__run-title {
@@ -374,7 +374,7 @@ const pipelineStatusColor = (status: string) => {
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-h5);
     line-height: var(--o-r-line_height-h5);
-    font-weight: 600;
+    font-weight: var(--o-font_weight-bold);
   }
 
   &__project-desc {

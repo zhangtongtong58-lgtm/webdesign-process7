@@ -2,7 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import {
   OButton, OTag, OTable, OPagination, OSelect, OOption,
-  OCheckbox, OLink, OMessage, OInput,
+  OCheckbox, OLink, OMessage, OInput, ODropdown,
 } from '@opensig/opendesign'
 import { useAuth } from '../../composables/useAuth'
 import { t } from '../../i18n/zh'
@@ -245,6 +245,24 @@ const handleMerge = () => {
   if (!selectedIds.value.length) { OMessage.warning('请先选择补丁'); return }
   OMessage.success(`已选 ${selectedIds.value.length} 条，合入操作已触发`)
 }
+
+const moreActions = [
+  { label: t('action.import'), value: 'import' },
+  { label: t('action.export'), value: 'export' },
+  { label: t('patch.merge'), value: 'merge' },
+  { label: t('patch.viewCases'), value: 'viewCases' },
+  { label: t('patch.batchDelete'), value: 'batchDelete', danger: true },
+]
+
+const handleMoreAction = (val: string | number) => {
+  switch (val) {
+    case 'import': OMessage.info('导入功能开发中'); break
+    case 'export': handleExport('all'); break
+    case 'merge': handleMerge(); break
+    case 'viewCases': OMessage.info('查看对应用例功能开发中'); break
+    case 'batchDelete': OMessage.info('批量删除功能开发中'); break
+  }
+}
 </script>
 
 <template>
@@ -335,16 +353,15 @@ const handleMerge = () => {
       </OLink>
     </div>
 
-    <!-- ── 工具栏 ── -->
-    <div class="patch-board__toolbar">
-      <OButton v-if="isAdmin" variant="solid" color="primary" size="medium">
-        {{ t('patch.create') }}
-      </OButton>
-      <OButton variant="outline" size="medium">{{ t('action.import') }}</OButton>
-      <OButton variant="outline" size="medium">{{ t('action.export') }}</OButton>
-    </div>
-
+    <!-- ── 表格区域（含右上角工具栏）── -->
     <div class="patch-board__table-wrap">
+      <div class="patch-board__table-header">
+        <OButton v-if="isAdmin" variant="solid" color="primary" size="medium">
+          {{ t('patch.create') }}
+        </OButton>
+        <ODropdown variant="outline" size="medium" :options="moreActions" @select="handleMoreAction" />
+      </div>
+
       <OTable :columns="columns" :data="pagedRows">
         <!-- 勾选列：th_select / td_select（与 PatchTab 相同模式，不用 #header 避免覆盖列标题） -->
         <template #th_select>
@@ -411,17 +428,8 @@ const handleMerge = () => {
       </OTable>
     </div>
 
-    <!-- ── 底部操作 + 分页 ── -->
+    <!-- ── 分页 ── -->
     <div class="patch-board__bottom">
-      <div class="patch-board__bottom-actions">
-        <OButton variant="solid" color="primary" size="medium" @click="handleMerge">
-          {{ t('patch.merge') }}
-        </OButton>
-        <OButton variant="outline" size="medium">{{ t('patch.viewCases') }}</OButton>
-        <OButton variant="outline" color="danger" size="medium">
-          {{ t('patch.batchDelete') }}
-        </OButton>
-      </div>
       <OPagination
         :total="filtered.length"
         :page="page"
@@ -455,7 +463,7 @@ const handleMerge = () => {
   &__num {
     font-size: var(--o-r-font_size-h1);
     line-height: var(--o-r-line_height-h1);
-    font-weight: 700;
+    font-weight: var(--o-font_weight-bold);
   }
   &__label {
     color: var(--o-color-info3);
@@ -477,7 +485,7 @@ const handleMerge = () => {
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-h3);
     line-height: var(--o-r-line_height-h3);
-    font-weight: 600;
+    font-weight: var(--o-font_weight-bold);
   }
   &__header-actions {
     display: flex;
@@ -513,10 +521,12 @@ const handleMerge = () => {
     color: var(--o-color-info3);
   }
 
-  &__toolbar {
+  &__table-header {
     display: flex;
+    align-items: center;
+    justify-content: flex-end;
     gap: var(--o-r-gap-3);
-    margin-bottom: var(--o-r-gap-4);
+    margin-bottom: var(--o-r-gap-3);
   }
 
   // ── 表格横向滚动
@@ -533,7 +543,7 @@ const handleMerge = () => {
   &__cell-title {
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-tip1);
-    font-weight: 500;
+    font-weight: var(--o-font_weight-regular);
     // 最大宽度限制，超长折行
     max-width: 110px;
     display: block;
@@ -549,7 +559,7 @@ const handleMerge = () => {
   }
   &__cell-mono {
     font-size: var(--o-r-font_size-tip1);
-    font-family: monospace;
+    font-family: var(--o-font_family-code);
     white-space: nowrap;
   }
   &__cell-link {
@@ -559,7 +569,7 @@ const handleMerge = () => {
   &__cell-hash {
     color: var(--o-color-info3);
     font-size: var(--o-r-font_size-tip2);
-    font-family: monospace;
+    font-family: var(--o-font_family-code);
     max-width: 120px;
     display: block;
     overflow: hidden;
@@ -594,10 +604,6 @@ const handleMerge = () => {
     justify-content: space-between;
     padding-top: var(--o-r-gap-4);
     border-top: 1px solid var(--o-color-control4);
-  }
-  &__bottom-actions {
-    display: flex;
-    gap: var(--o-r-gap-3);
   }
 }
 </style>

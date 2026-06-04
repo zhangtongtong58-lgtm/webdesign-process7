@@ -192,7 +192,7 @@ interface AddPatchForm {
   patchType: string; productVersion: string; userKernel: string; patchModule: string
   commitOE: string; prRelated: string; oeMergeTag: string; oePR: string
   commitUpstream: string; upstreamMergeTag: string
-  merged: boolean; customerImpact: string; hwRepoStatus: string
+  merged: string; customerImpact: string; hwRepoStatus: string
   customerMergeStatus: string; mergeVersion: string; osReleaseVersion: string
 }
 
@@ -201,7 +201,7 @@ const EMPTY_FORM: AddPatchForm = {
   patchType: '', productVersion: '', userKernel: '', patchModule: '',
   commitOE: '', prRelated: '', oeMergeTag: '', oePR: '',
   commitUpstream: '', upstreamMergeTag: '',
-  merged: false, customerImpact: '', hwRepoStatus: '',
+  merged: '', customerImpact: '', hwRepoStatus: '',
   customerMergeStatus: '', mergeVersion: '', osReleaseVersion: '',
 }
 
@@ -253,61 +253,60 @@ const handleExport = (type: 'all' | 'selected') => {
 
 <template>
   <div class="patch-tab">
-    <!-- 筛选器 -->
-    <div class="patch-tab__filter">
-      <OSelect v-model="filters.module" placeholder="补丁模块" variant="outline" size="medium"
-        class="patch-tab__sel" @change="handleQuery">
-        <OOption v-for="o in moduleOptions" :key="o.value" :value="o.value" :label="o.label" />
-      </OSelect>
-      <OSelect v-model="filters.patchType" placeholder="补丁类型" variant="outline" size="medium"
-        class="patch-tab__sel" @change="handleQuery">
-        <OOption v-for="o in patchTypeOptions" :key="o.value" :value="o.value" :label="o.label" />
-      </OSelect>
-      <OSelect v-model="filters.version" placeholder="产品版本" variant="outline" size="medium"
-        class="patch-tab__sel" @change="handleQuery">
-        <OOption v-for="o in versionOptions" :key="o.value" :value="o.value" :label="o.label" />
-      </OSelect>
-      <OSelect v-model="filters.mergeStatus" placeholder="合入状态" variant="outline" size="medium"
-        class="patch-tab__sel" @change="handleQuery">
-        <OOption v-for="o in mergeOptions" :key="o.value" :value="o.value" :label="o.label" />
-      </OSelect>
-      <OSelect v-model="filters.hwRepoStatus" placeholder="华为仓库状态" variant="outline" size="medium"
-        class="patch-tab__sel patch-tab__sel--wide" @change="handleQuery">
-        <OOption v-for="o in hwRepoOptions" :key="o.value" :value="o.value" :label="o.label" />
-      </OSelect>
-      <OLink color="primary" class="patch-tab__clear" @click="handleClear">清除筛选</OLink>
-    </div>
+    <!-- 筛选器 + 操作按钮（同一行） -->
+    <div class="patch-tab__filter-row">
+      <div class="patch-tab__filter">
+        <OSelect v-model="filters.module" placeholder="补丁模块" variant="outline" size="medium"
+          class="patch-tab__sel" @change="handleQuery">
+          <OOption v-for="o in moduleOptions" :key="o.value" :value="o.value" :label="o.label" />
+        </OSelect>
+        <OSelect v-model="filters.patchType" placeholder="补丁类型" variant="outline" size="medium"
+          class="patch-tab__sel" @change="handleQuery">
+          <OOption v-for="o in patchTypeOptions" :key="o.value" :value="o.value" :label="o.label" />
+        </OSelect>
+        <OSelect v-model="filters.version" placeholder="产品版本" variant="outline" size="medium"
+          class="patch-tab__sel" @change="handleQuery">
+          <OOption v-for="o in versionOptions" :key="o.value" :value="o.value" :label="o.label" />
+        </OSelect>
+        <OSelect v-model="filters.mergeStatus" placeholder="合入状态" variant="outline" size="medium"
+          class="patch-tab__sel" @change="handleQuery">
+          <OOption v-for="o in mergeOptions" :key="o.value" :value="o.value" :label="o.label" />
+        </OSelect>
+        <OSelect v-model="filters.hwRepoStatus" placeholder="华为仓库状态" variant="outline" size="medium"
+          class="patch-tab__sel patch-tab__sel--wide" @change="handleQuery">
+          <OOption v-for="o in hwRepoOptions" :key="o.value" :value="o.value" :label="o.label" />
+        </OSelect>
+        <OLink color="primary" class="patch-tab__clear" @click="handleClear">清除筛选</OLink>
+      </div>
 
-    <!-- 工具栏 -->
-    <div class="patch-tab__toolbar">
-      <!-- 新增补丁 -->
-      <OButton variant="solid" color="primary" size="medium" @click="openAddDialog">
-        {{ t('patch.create') }}
-      </OButton>
-      <!-- 导入 Excel -->
-      <OButton variant="outline" size="medium" @click="importDialog.visible = true">
-        {{ t('action.import') }}
-      </OButton>
-      <!-- 导出：下拉支持全部/所选 -->
-      <ODropdown trigger="click">
-        <OButton variant="outline" size="medium">
-          {{ t('action.export') }}
-          <template #suffix>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="margin-left:2px">
-              <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </template>
+      <div class="patch-tab__actions">
+        <OButton variant="solid" color="primary" size="medium" @click="openAddDialog">
+          {{ t('patch.create') }}
         </OButton>
-        <template #dropdown>
-          <div class="export-menu">
-            <div class="export-menu__item" @click="handleExport('all')">导出全部</div>
-            <div class="export-menu__item" @click="handleExport('selected')">
-              导出所选
-              <span v-if="selectedIds.length > 0" class="export-menu__count">（{{ selectedIds.length }}条）</span>
+        <OButton variant="outline" size="medium" @click="handleMerge()">
+          {{ t('patch.merge') }}
+        </OButton>
+        <OButton variant="outline" size="medium" @click="handleViewCases()">
+          {{ t('patch.viewCases') }}
+        </OButton>
+        <ODropdown trigger="click">
+          <OButton variant="outline" size="medium">
+            更多操作
+            <template #suffix>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0.250616 0.205025C2.94745e-05 0.455612 -0.0208527 0.848918 0.187969 1.12329L0.250616 1.19497L5.26695 6.21131C5.36737 6.31173 5.38172 6.46563 5.30999 6.58133L5.26695 6.63558L0.205025 11.6975C-0.0683418 11.9709 -0.0683418 12.4141 0.205025 12.6875C0.455612 12.938 0.848918 12.9589 1.12329 12.7501L1.19497 12.6875L6.2569 7.62553C6.88585 6.99658 6.91895 5.99741 6.35621 5.32949L6.2569 5.22136L1.24057 0.205025C0.967198 -0.0683418 0.523983 -0.0683418 0.250616 0.205025Z" fill="currentColor" fill-opacity="0.8" transform="matrix(0,1,1,0,5.55376,8.62259)"/>
+              </svg>
+            </template>
+          </OButton>
+          <template #dropdown>
+            <div class="more-menu">
+              <div class="more-menu__item" @click="importDialog.visible = true">{{ t('action.import') }}</div>
+              <div class="more-menu__item" @click="handleExport('all')">{{ t('action.export') }}</div>
+              <div class="more-menu__item more-menu__item--danger" @click="handleBatchDelete()">{{ t('patch.batchDelete') }}</div>
             </div>
-          </div>
-        </template>
-      </ODropdown>
+          </template>
+        </ODropdown>
+      </div>
     </div>
 
     <!-- 表格 -->
@@ -323,7 +322,7 @@ const handleExport = (type: 'all' | 'selected') => {
           <OCheckbox v-model="selectedIds" :value="row.id" />
         </template>
         <template #td_description="{ row }">
-          <span class="patch-tab__desc-link">{{ row.description }}</span>
+          <span class="patch-tab__cell-text">{{ row.description }}</span>
         </template>
         <template #td_communityIssue="{ row }">
           <OLink v-if="row.communityIssue" color="primary" href="javascript:void(0)">{{ row.communityIssue }}</OLink>
@@ -339,13 +338,13 @@ const handleExport = (type: 'all' | 'selected') => {
           <span class="patch-tab__muted">{{ row.prRelated ?? '—' }}</span>
         </template>
         <template #td_oePR="{ row }">
-          <OLink v-if="row.oePR" color="primary" :href="row.oePR" target="_blank" class="patch-tab__pr-url">
+          <OLink v-if="row.oePR" color="primary" :href="row.oePR" target="_blank" class="patch-tab__link">
             {{ row.oePR }}
           </OLink>
           <span v-else class="patch-tab__muted">—</span>
         </template>
         <template #td_commitUpstream="{ row }">
-          <span class="patch-tab__cell-hash">{{ row.commitUpstream ? row.commitUpstream.slice(0, 12) : '—' }}</span>
+          <span class="patch-tab__cell-id">{{ row.commitUpstream ? row.commitUpstream.slice(0, 12) : '—' }}</span>
         </template>
         <template #td_merged="{ row }">
           <OTag :color="row.merged ? 'success' : 'warning'" size="medium">{{ row.merged ? '已合入' : '未合入' }}</OTag>
@@ -368,60 +367,34 @@ const handleExport = (type: 'all' | 'selected') => {
       </OTable>
     </div>
 
-    <!-- 底部操作区 -->
+    <!-- 分页 -->
     <div class="patch-tab__bottom">
-      <div class="patch-tab__bottom-actions">
-        <!-- 合入补丁：奇次成功/偶次失败，结果面板在下方显示 -->
-        <OButton variant="solid" color="primary" size="medium" @click="handleMerge">
-          {{ t('patch.merge') }}
-        </OButton>
-        <!-- 查看对应用例：跳转到用例看板并过滤 -->
-        <OButton variant="outline" size="medium" @click="handleViewCases">
-          {{ t('patch.viewCases') }}
-        </OButton>
-        <!-- 批量删除：弹窗二次确认 -->
-        <OButton variant="outline" color="danger" size="medium" @click="handleBatchDelete">
-          {{ t('patch.batchDelete') }}
-        </OButton>
-      </div>
       <OPagination :total="filtered.length" :page="page" :page-size="pageSize" :page-sizes="[10,20,50]" @change="onPageChange" />
     </div>
 
-    <!-- 合入结果面板（简化版）-->
-    <div v-if="mergeResult.visible" class="merge-panel-wrapper">
-      <div
-        class="merge-panel"
-        :class="mergeResult.success ? 'merge-panel--success' : 'merge-panel--fail'"
-      >
-        <div class="merge-panel__header">
-          <OTag :color="mergeResult.success ? 'success' : 'danger'" size="medium">
-            {{ mergeResult.success ? '合入成功' : '合入失败' }}
-          </OTag>
-          <OButton variant="text" size="small"
-            @click="mergeResult.visible = false">关闭</OButton>
-        </div>
-        <div class="merge-panel__body">
-          <template v-if="mergeResult.success">
-            <p class="merge-panel__desc">以下补丁已成功合入，PR 链接如下：</p>
-            <div class="merge-panel__links">
-              <OLink
-                v-for="(line, i) in mergeResult.logs.filter(l => l.startsWith('  http'))"
-                :key="i"
-                color="primary"
-                :href="line.trim()"
-                target="_blank"
-                class="merge-panel__link"
-              >{{ line.trim() }}</OLink>
-            </div>
-          </template>
-          <template v-else>
-            <p class="merge-panel__desc merge-panel__desc--err">
-              合入失败：远程仓库拒绝了本次提交，请解决代码冲突后重新提交，或联系管理员处理。
-            </p>
-          </template>
-        </div>
+    <!-- 合入结果弹窗 -->
+    <ODialog v-model:visible="mergeResult.visible" :title="mergeResult.success ? '合入成功' : '合入失败'" class="result-dialog">
+      <div class="merge-dialog-body">
+        <template v-if="mergeResult.success">
+          <p class="merge-dialog-body__desc">以下补丁已成功合入，PR 链接如下：</p>
+          <div class="merge-dialog-body__links">
+            <OLink
+              v-for="(line, i) in mergeResult.logs.filter(l => l.startsWith('  http'))"
+              :key="i"
+              color="primary"
+              :href="line.trim()"
+              target="_blank"
+              class="merge-dialog-body__link"
+            >{{ line.trim() }}</OLink>
+          </div>
+        </template>
+        <template v-else>
+          <p class="merge-dialog-body__desc merge-dialog-body__desc--err">
+            合入失败：远程仓库拒绝了本次提交，请解决代码冲突后重新提交，或联系管理员处理。
+          </p>
+        </template>
       </div>
-    </div><!-- /.merge-panel-wrapper -->
+    </ODialog>
   </div>
 
   <!-- ══ 批量删除确认弹窗 ════════════════════════════════════════════════════════
@@ -454,7 +427,7 @@ const handleExport = (type: 'all' | 'selected') => {
           <OInput v-model="addDialog.form.title" placeholder="请输入补丁概述" clearable />
         </div>
         <div class="patch-form__field patch-form__field--full">
-          <label class="patch-form__label">功能介绍（AR粒度）</label>
+          <label class="patch-form__label"><span class="patch-form__required">*</span>功能介绍（AR粒度）</label>
           <OTextarea v-model="addDialog.form.description" placeholder="请详细描述功能" :rows="3" />
         </div>
         <div class="patch-form__field">
@@ -473,14 +446,14 @@ const handleExport = (type: 'all' | 'selected') => {
           </OSelect>
         </div>
         <div class="patch-form__field">
-          <label class="patch-form__label">用户态/内核态</label>
+          <label class="patch-form__label"><span class="patch-form__required">*</span>用户态/内核态</label>
           <OSelect v-model="addDialog.form.userKernel" placeholder="请选择（可选）">
             <OOption value="用户态" label="用户态" />
             <OOption value="内核" label="内核" />
           </OSelect>
         </div>
         <div class="patch-form__field">
-          <label class="patch-form__label">补丁模块</label>
+          <label class="patch-form__label"><span class="patch-form__required">*</span>补丁模块</label>
           <OSelect v-model="addDialog.form.patchModule" placeholder="请选择">
             <OOption value="ACC" label="ACC" />
             <OOption value="ZIP" label="ZIP" />
@@ -489,7 +462,7 @@ const handleExport = (type: 'all' | 'selected') => {
           </OSelect>
         </div>
         <div class="patch-form__field">
-          <label class="patch-form__label">关联社区Issue</label>
+          <label class="patch-form__label"><span class="patch-form__required">*</span>关联社区Issue</label>
           <OInput v-model="addDialog.form.communityIssue" placeholder="例：I9X2K1（可选）" clearable />
         </div>
       </div>
@@ -502,27 +475,27 @@ const handleExport = (type: 'all' | 'selected') => {
       </div>
       <div class="patch-form__grid">
         <div class="patch-form__field patch-form__field--full">
-          <label class="patch-form__label">Commit OE</label>
+          <label class="patch-form__label"><span class="patch-form__required">*</span>Commit OE</label>
           <OInput v-model="addDialog.form.commitOE" placeholder="例：crypto: hisilicon - enable error reporting again" clearable />
         </div>
         <div class="patch-form__field">
-          <label class="patch-form__label">OE Merge tag</label>
+          <label class="patch-form__label"><span class="patch-form__required">*</span>OE Merge tag</label>
           <OInput v-model="addDialog.form.oeMergeTag" placeholder="例：6.6.0-94.0.0" clearable />
         </div>
         <div class="patch-form__field">
-          <label class="patch-form__label">OE PR</label>
+          <label class="patch-form__label"><span class="patch-form__required">*</span>OE PR</label>
           <OInput v-model="addDialog.form.oePR" placeholder="例：gitc URL" clearable />
         </div>
         <div class="patch-form__field">
-          <label class="patch-form__label">PR前、后置补丁</label>
+          <label class="patch-form__label"><span class="patch-form__required">*</span>PR前、后置补丁</label>
           <OInput v-model="addDialog.form.prRelated" placeholder="可选" clearable />
         </div>
         <div class="patch-form__field">
-          <label class="patch-form__label">Commit upstream</label>
+          <label class="patch-form__label"><span class="patch-form__required">*</span>Commit upstream</label>
           <OInput v-model="addDialog.form.commitUpstream" placeholder="upstream commit hash（可选）" clearable />
         </div>
         <div class="patch-form__field">
-          <label class="patch-form__label">upstream Merge tag</label>
+          <label class="patch-form__label"><span class="patch-form__required">*</span>upstream Merge tag</label>
           <OInput v-model="addDialog.form.upstreamMergeTag" placeholder="例：v6.18-rc1（可选）" clearable />
         </div>
       </div>
@@ -535,14 +508,14 @@ const handleExport = (type: 'all' | 'selected') => {
       </div>
       <div class="patch-form__grid">
         <div class="patch-form__field">
-          <label class="patch-form__label">是否合入</label>
-          <div class="patch-form__switch-row">
-            <OSwitch v-model="addDialog.form.merged" />
-            <span class="patch-form__switch-label">{{ addDialog.form.merged ? '已合入' : '未合入' }}</span>
-          </div>
+          <label class="patch-form__label"><span class="patch-form__required">*</span>是否合入</label>
+          <OSelect v-model="addDialog.form.merged" placeholder="请选择">
+            <OOption :value="true" label="已合入" />
+            <OOption :value="false" label="未合入" />
+          </OSelect>
         </div>
         <div class="patch-form__field">
-          <label class="patch-form__label">华为仓库合入状态</label>
+          <label class="patch-form__label"><span class="patch-form__required">*</span>华为仓库合入状态</label>
           <OSelect v-model="addDialog.form.hwRepoStatus" placeholder="请选择">
             <OOption value="all" label="全合入" />
             <OOption value="partial" label="部分合入" />
@@ -550,19 +523,19 @@ const handleExport = (type: 'all' | 'selected') => {
           </OSelect>
         </div>
         <div class="patch-form__field patch-form__field--full">
-          <label class="patch-form__label">客户影响</label>
+          <label class="patch-form__label"><span class="patch-form__required">*</span>客户影响</label>
           <OTextarea v-model="addDialog.form.customerImpact" placeholder="描述此补丁对客户的影响（可选）" :rows="2" />
         </div>
         <div class="patch-form__field">
-          <label class="patch-form__label">客户侧合入状态<span class="patch-form__hint">（客户录入）</span></label>
+          <label class="patch-form__label"><span class="patch-form__required">*</span>客户侧合入状态<span class="patch-form__hint">（客户录入）</span></label>
           <OInput v-model="addDialog.form.customerMergeStatus" placeholder="例：已合入" clearable />
         </div>
         <div class="patch-form__field">
-          <label class="patch-form__label">合入版本<span class="patch-form__hint">（客户录入）</span></label>
+          <label class="patch-form__label"><span class="patch-form__required">*</span>合入版本<span class="patch-form__hint">（客户录入）</span></label>
           <OInput v-model="addDialog.form.mergeVersion" placeholder="例：main-5.10" clearable />
         </div>
         <div class="patch-form__field patch-form__field--full">
-          <label class="patch-form__label">OS发布版本<span class="patch-form__hint">（客户录入）</span></label>
+          <label class="patch-form__label"><span class="patch-form__required">*</span>OS发布版本<span class="patch-form__hint">（客户录入）</span></label>
           <OInput v-model="addDialog.form.osReleaseVersion" placeholder="例：24.03-LTS" clearable />
         </div>
       </div>
@@ -577,28 +550,18 @@ const handleExport = (type: 'all' | 'selected') => {
   </ODialog>
 
   <!-- ══ 导入弹窗（Excel批量上传）════════════════════════════════════════════════
-       OUpload draggable，支持 .xlsx / .xls / .csv
+       OUpload 点击上传，支持 .xlsx / .xls / .csv
        上传后预览文件列表，确认导入
   ══ -->
-  <ODialog v-model:visible="importDialog.visible" title="批量导入补丁" size="medium">
+  <ODialog v-model:visible="importDialog.visible" title="批量导入补丁" size="medium" class="import-dialog">
     <div class="import-body">
-      <!-- 说明 + 模板下载 -->
-      <div class="import-body__tips">
-        <p class="import-body__tip-text">
-          请按照模板格式准备 Excel 文件，支持 <strong>.xlsx</strong>、<strong>.xls</strong>、<strong>.csv</strong> 格式。
-        </p>
-        <OLink color="primary" href="javascript:void(0)" class="import-body__template-link">
-          下载导入模板
-        </OLink>
-      </div>
-
-      <ODivider />
-
-      <!-- OUpload：拖拽 + 点击上传，接受 Excel -->
+      <p class="import-body__text">
+        请按照模板格式准备 Excel 文件，支持 <strong>.xlsx</strong>、<strong>.xls</strong>、<strong>.csv</strong> 格式。
+        <OLink color="primary" href="javascript:void(0)" class="import-body__template-link">下载导入模板</OLink>
+      </p>
       <OUpload
         v-model="importFiles"
         accept=".xlsx,.xls,.csv"
-        draggable
         :multiple="false"
         :upload-request="handleImportUpload"
         btn-label="选择 Excel 文件"
@@ -608,8 +571,6 @@ const handleExport = (type: 'all' | 'selected') => {
 
     <template #footer>
       <div class="patch-dialog-footer">
-        <OButton variant="outline" size="medium"
-          @click="importDialog.visible = false; importFiles = []">取消</OButton>
         <OButton variant="solid" color="primary" size="medium" @click="handleImportConfirm">
           确认导入
         </OButton>
@@ -628,30 +589,42 @@ const handleExport = (type: 'all' | 'selected') => {
   &--success { border-left-color: var(--o-color-success1); .stat-card__num { color: var(--o-color-success1); } }
   &--warning { border-left-color: var(--o-color-warning1); .stat-card__num { color: var(--o-color-warning1); } }
   &--danger  { border-left-color: var(--o-color-danger1);  .stat-card__num { color: var(--o-color-danger1);  } }
-  &__num   { font-size: var(--o-r-font_size-h1); font-weight: 700; }
+  &__num   { font-size: var(--o-r-font_size-h1); font-weight: var(--o-font_weight-bold); }
   &__label { color: var(--o-color-info3); font-size: var(--o-r-font_size-tip1); }
 }
 
 .patch-tab {
   padding-top: var(--o-r-gap-5);
   &__stats { display: flex; gap: var(--o-r-grid-column-gutter); margin-bottom: var(--o-r-gap-6); }
-  &__filter { display: flex; flex-wrap: wrap; align-items: center; gap: var(--o-r-gap-3); margin-bottom: var(--o-r-gap-4); }
   &__sel { width: 130px; }
   &__sel--wide { width: 150px; }
   &__clear { font-size: var(--o-r-font_size-tip1); color: var(--o-color-info3); cursor: pointer; white-space: nowrap; }
-  &__toolbar { display: flex; gap: var(--o-r-gap-3); margin-bottom: var(--o-r-gap-4); }
-  &__table-wrap { margin-bottom: var(--o-r-gap-3); }
-  &__desc-link { font-size: var(--o-r-font_size-tip1); max-width: 180px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  &__muted { color: var(--o-color-info3); font-size: var(--o-r-font_size-tip1); white-space: nowrap; }
-  &__cell-hash { color: var(--o-color-info3); font-size: var(--o-r-font_size-tip2); font-family: monospace; }
-  &__pr-url {
-    font-size: var(--o-r-font_size-tip2);
-    word-break: break-all;
-    display: block;
-    line-height: var(--o-r-line_height-tip2);
+
+  &__filter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--o-r-gap-4);
+    flex-wrap: wrap;
+    margin-bottom: var(--o-r-gap-5);
   }
-  &__bottom { display: flex; align-items: center; justify-content: space-between; margin-top: var(--o-r-gap-5); padding-top: var(--o-r-gap-4); border-top: 1px solid var(--o-color-control4); }
-  &__bottom-actions { display: flex; gap: var(--o-r-gap-3); }
+  &__filter { display: flex; flex-wrap: wrap; gap: var(--o-r-gap-3); align-items: center; flex: 1; min-width: 0; }
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--o-r-gap-3);
+    flex-shrink: 0;
+  }
+  &__table-wrap {
+    margin-bottom: var(--o-r-gap-5);
+  }
+
+  // ── 表格单元格统一样式 ────────────────────────────────────────────────
+  &__cell-text { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); line-height: var(--o-r-line_height-tip1); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 180px; }
+  &__cell-id { color: var(--o-color-info3); font-size: var(--o-r-font_size-tip2); font-family: var(--o-font_family-code); white-space: nowrap; }
+  &__muted { color: var(--o-color-info3); font-size: var(--o-r-font_size-tip1); }
+  &__link { color: var(--o-color-primary1); font-size: var(--o-r-font_size-tip1); word-break: break-all; display: block; line-height: var(--o-r-line_height-tip1); }
+  &__bottom { display: flex; align-items: center; justify-content: flex-end; margin-top: var(--o-r-gap-5); padding-top: var(--o-r-gap-4); border-top: 1px solid var(--o-color-control4); }
 }
 
 // ── 新增补丁表单 ────────────────────────────────────────────────────────────────
@@ -659,6 +632,9 @@ const handleExport = (type: 'all' | 'selected') => {
   display: flex;
   flex-direction: column;
   gap: var(--o-r-gap-5);
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: var(--o-r-gap-2);
 
   &__section-title {
     display: flex;
@@ -666,7 +642,7 @@ const handleExport = (type: 'all' | 'selected') => {
     gap: var(--o-r-gap-2);
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-text1);
-    font-weight: 600;
+    font-weight: var(--o-font_weight-bold);
   }
 
   &__bar {
@@ -693,14 +669,14 @@ const handleExport = (type: 'all' | 'selected') => {
     color: var(--o-color-info2);
     font-size: var(--o-r-font_size-tip1);
     line-height: var(--o-r-line_height-tip1);
-    font-weight: 500;
+    font-weight: var(--o-font_weight-regular);
   }
 
   &__required { color: var(--o-color-danger1); margin-right: var(--o-r-gap-1); }
 
   &__hint {
     color: var(--o-color-info4);
-    font-weight: 400;
+    font-weight: var(--o-font_weight-regular);
     margin-left: 4px;
   }
 
@@ -719,32 +695,18 @@ const handleExport = (type: 'all' | 'selected') => {
 
 // ── 导入弹窗 ────────────────────────────────────────────────────────────────────
 .import-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--o-r-gap-4);
-
-  &__tips {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--o-r-gap-4);
-    flex-wrap: wrap;
-  }
-
-  &__tip-text {
-    margin: 0;
-    color: var(--o-color-info2);
-    font-size: var(--o-r-font_size-tip1);
-    line-height: var(--o-r-line_height-tip1);
-    strong { color: var(--o-color-primary1); }
-  }
-
-  &__template-link {
-    white-space: nowrap;
-    font-size: var(--o-r-font_size-tip1);
-  }
-
+  display: flex; flex-direction: column; gap: var(--o-r-gap-3);
+  &__text { margin: 0; color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); line-height: var(--o-r-line_height-tip1); strong { color: var(--o-color-primary1); } }
+  &__template-link { margin-left: var(--o-r-gap-2); white-space: nowrap; font-size: var(--o-r-font_size-tip1); }
   &__upload { width: 100%; }
+}
+
+// ── 导入弹窗（高度自适应 + 紧凑布局）───────────────────────────────────────────
+.import-dialog {
+  :deep(.o-dialog__body) {
+    max-height: none !important;
+    padding: 16px 20px !important;
+  }
 }
 
 // ── 弹窗底部操作区（取消 + 确认）──────────────────────────────────────────────────
@@ -754,63 +716,32 @@ const handleExport = (type: 'all' | 'selected') => {
   gap: var(--o-r-gap-3);
 }
 
-// ── 合入结果面板（简化版）──────────────────────────────────────────────────────
-.merge-panel {
-  margin-top: var(--o-r-gap-4);
-  border-radius: var(--o-radius_control-m);
-  border: 1px solid var(--o-color-control1);
-  overflow: hidden;
-
-  &--success { border-color: var(--o-color-success1); }
-  &--fail    { border-color: var(--o-color-danger1);  }
-
-  // 标题行：状态 Tag + 关闭按钮
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--o-r-gap-3) var(--o-r-gap-4);
-    background-color: var(--o-color-fill3);
+// ── 结果弹窗（高度自适应）────────────────────────────────────────────────────
+.result-dialog {
+  :deep(.o-dialog__body) {
+    max-height: none;
   }
+}
 
-  // 内容区
-  &__body {
-    padding: var(--o-r-gap-4);
-    display: flex;
-    flex-direction: column;
-    gap: var(--o-r-gap-3);
-    background-color: var(--o-color-fill2);
-  }
-
+// ── 合入结果弹窗内容 ──────────────────────────────────────────────────────────
+.merge-dialog-body {
   &__desc {
     margin: 0;
     color: var(--o-color-info2);
     font-size: var(--o-r-font_size-tip1);
     line-height: var(--o-r-line_height-tip1);
+    margin-bottom: var(--o-r-gap-3);
     &--err { color: var(--o-color-danger1); }
   }
-
-  // PR 链接列表
   &__links {
     display: flex;
     flex-direction: column;
     gap: var(--o-r-gap-2);
   }
-
   &__link {
     font-size: var(--o-r-font_size-tip1);
     word-break: break-all;
   }
-}
-
-// 滑入动画
-// 面板 wrapper：用 v-if 控制显隐，结合 animation 实现滑入效果
-.merge-panel-wrapper {
-  animation: mergeSlideIn var(--o-duration-m1) var(--o-easing-standard);
-}
-@keyframes mergeSlideIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
 }
 
 // ── 批量删除确认弹窗内容 ────────────────────────────────────────────────────────
@@ -827,34 +758,8 @@ const handleExport = (type: 'all' | 'selected') => {
 }
 </style>
 
-<!-- 导出下拉菜单全局样式（非 scoped，防止被 ODropdown 弹层作用域隔离） -->
+<!-- 全局样式：修复表格横向滚动 -->
 <style>
-.export-menu {
-  padding: 4px 0;
-  min-width: 120px;
-}
-.export-menu__item {
-  padding: 8px 16px;
-  font-size: 14px;
-  color: rgba(0, 0, 0, 0.85);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  transition: background-color 0.15s;
-}
-.export-menu__item:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-.export-menu__count {
-  color: rgba(0, 0, 0, 0.45);
-  font-size: 12px;
-}
-
-/* ── 横向滚动（修复表格内容显示不全）─────────────────────────────────────────
-   OTable 内置 .o-table-wrap { overflow: hidden }，必须通过全局 CSS 覆盖
-   才能让 .o-table-wrap 自身横向滚动，使 21 列全部可访问。
-─────────────────────────────────────────────────────────────────────────── */
 .patch-tab__table-wrap .o-table-wrap {
   overflow-x: auto;
   overflow-y: hidden;
@@ -881,5 +786,33 @@ const handleExport = (type: 'all' | 'selected') => {
   overflow: visible;
   text-align: center;
   padding-left: 16px;
+}
+
+/* 更多操作下拉菜单 */
+.more-menu {
+  padding: var(--o-r-gap-1) 0;
+  min-width: 140px;
+}
+.more-menu__item {
+  padding: 8px 16px;
+  font-size: var(--o-r-font_size-tip1);
+  color: var(--o-color-info1);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.more-menu__item:hover {
+  background-color: var(--o-color-fill3);
+}
+.more-menu__item--danger {
+  color: var(--o-color-danger1);
+}
+.more-menu__item--danger:hover {
+  background-color: rgba(var(--o-danger1-rgb, 230, 0, 18), 0.06);
+}
+
+/* 全局样式：强制覆盖导入弹窗高度和内边距 */
+.import-dialog .o-dialog__body {
+  max-height: none !important;
+  padding: 16px 20px !important;
 }
 </style>

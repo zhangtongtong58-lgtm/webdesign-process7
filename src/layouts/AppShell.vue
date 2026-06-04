@@ -19,7 +19,8 @@ const activeKey = computed(() => {
   if (p.startsWith('/projects'))  return 'projects'
   if (p.startsWith('/patches'))   return 'patches'
   if (p.startsWith('/testcases')) return 'testcases'
-  return 'projects'
+  if (p.startsWith('/profile') || p.startsWith('/pipeline')) return ''
+  return ''
 })
 
 const userInitial = computed(() => currentUser.value?.name?.charAt(0) ?? 'U')
@@ -132,7 +133,7 @@ const userInitial = computed(() => currentUser.value?.name?.charAt(0) ?? 'U')
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-text1);
     line-height: var(--o-r-line_height-text1);
-    font-weight: 600;
+    font-weight: var(--o-font_weight-bold);
     white-space: nowrap;
   }
 
@@ -144,7 +145,7 @@ const userInitial = computed(() => currentUser.value?.name?.charAt(0) ?? 'U')
     height: 100%;
   }
 
-  // 菜单项：16px / 400 / 行高 24px（规范精确值）
+  // 菜单项：text1 / regular / 行高 text1（规范精确值）
   // 激活态：底部 2px 指示线（spec: Active 底部 2px 品牌蓝）
   &__nav-item {
     position: relative;
@@ -157,10 +158,10 @@ const userInitial = computed(() => currentUser.value?.name?.charAt(0) ?? 'U')
     border: none;
     background: transparent;
     cursor: pointer;
-    // 规范字体：16px / 400 / rgba(0,0,0,1)
-    font-size: 16px;
-    line-height: 24px;
-    font-weight: 400;
+    // 规范字体：text1 / regular
+    font-size: var(--o-r-font_size-text1);
+    line-height: var(--o-r-line_height-text1);
+    font-weight: var(--o-font_weight-regular);
     color: rgba(0, 0, 0, 1);
     transition: color var(--o-duration-s) var(--o-easing-standard);
 
@@ -171,7 +172,7 @@ const userInitial = computed(() => currentUser.value?.name?.charAt(0) ?? 'U')
     // 激活态：主色文字 + 底部 2px 指示线
     &--active {
       color: var(--o-color-primary1);
-      font-weight: 600;
+      font-weight: var(--o-font_weight-bold);
 
       &::after {
         content: '';
@@ -204,7 +205,7 @@ const userInitial = computed(() => currentUser.value?.name?.charAt(0) ?? 'U')
     align-items: center;
     justify-content: center;
     font-size: var(--o-r-font_size-tip2);
-    font-weight: 600;
+    font-weight: var(--o-font_weight-bold);
     cursor: pointer;
     flex-shrink: 0;
     transition: opacity var(--o-duration-s) var(--o-easing-standard);
