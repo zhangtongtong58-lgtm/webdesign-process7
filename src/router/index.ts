@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 
 const routes: RouteRecordRaw[] = [
@@ -48,16 +48,19 @@ const routes: RouteRecordRaw[] = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes,
 })
 
 router.beforeEach((to) => {
-  const { isLoggedIn } = useAuth()
+  const { isLoggedIn, isAdmin } = useAuth()
   if (to.meta.requiresAuth !== false && !isLoggedIn.value) {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
   if (to.name === 'login' && isLoggedIn.value) {
+    return { name: 'projects' }
+  }
+  if (!isAdmin.value && (to.name === 'patches' || to.name === 'testcases')) {
     return { name: 'projects' }
   }
 })

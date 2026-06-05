@@ -27,6 +27,9 @@ const selectedProjectId = ref(visibleProjects.value[0]?.id ?? '')
 const project = computed<Project | undefined>(() =>
   MOCK_PROJECTS.find((p) => p.id === selectedProjectId.value)
 )
+const projStatusColor = computed(() =>
+  ({ '开发中': 'primary', '测试中': 'warning', '已完成': 'success' }[project.value?.status ?? ''] ?? 'normal')
+)
 
 const projectOptions = computed(() =>
   visibleProjects.value.map((p) => ({
@@ -177,15 +180,16 @@ const pipelineTasks = computed(() => {
   ]
 })
 const pipelineColumns = computed(() => [
-  { label: t('pipeline.colTaskId'),                                       key: 'taskId' },
-  { label: `${t('pipeline.colBuild')}\n${t('pipeline.statusHint')}`,     key: 'buildStatus' },
-  { label: `${t('pipeline.colIso')}\n${t('pipeline.statusHint')}`,       key: 'isoStatus' },
-  { label: `${t('pipeline.colTest')}\n${t('pipeline.testHint')}`,        key: 'testStatus' },
-  { label: `${t('pipeline.colStatus')}\n${t('pipeline.statusHint')}`,   key: 'pipelineStatus' },
+  { label: t('pipeline.colTaskId'),                                   key: 'taskId' },
+  { label: t('pipeline.colBuild'),                                    key: 'buildStatus' },
+  { label: t('pipeline.colIso'),                                      key: 'isoStatus' },
+  { label: t('pipeline.colTest'),                                     key: 'testStatus' },
+  { label: t('pipeline.colStatus'),                                   key: 'pipelineStatus' },
   { label: t('pipeline.colStart'),     key: 'startedAt' },
   { label: t('pipeline.colEnd'),       key: 'endedAt' },
   { label: t('pipeline.colDuration'),  key: 'duration' },
   { label: t('pipeline.colExecutor'),  key: 'executor' },
+  { label: t('pipeline.colAction'),    key: 'action' },
 ])
 const pipelineStatusColor = (s: PipelineStatus | string) => {
   const m: Record<string, string> = { success: 'success', failed: 'danger', running: 'warning', pending: 'info', cancelled: 'info' }
@@ -215,6 +219,18 @@ const dialogFilter = reactive<{
 
 // 弹窗内用例选中
 const dialogSelectedIds = ref<string[]>([])
+
+watch(activeTab, (tab) => {
+  if (tab === 'pipeline') {
+    if (runPipelineCaseIds.value.length > 0) {
+      dialogSelectedIds.value = [...runPipelineCaseIds.value]
+    } else {
+      dialogSelectedIds.value = MOCK_TEST_CASES
+        .filter(tc => tc.projectId === selectedProjectId.value)
+        .map(tc => tc.id)
+    }
+  }
+})
 
 // 弹窗内用例数据（当前项目 + 筛选）
 const dialogCases = computed(() => {
@@ -251,27 +267,37 @@ const dialogAllChecked = computed({
 })
 
 // 弹窗内用例列（简化版，对应截图）
-const dialogCaseColumns = [
-  { label: '',         key: 'select',          style: { width: '52px',  minWidth: '52px'  } },
-  { label: '用例名称', key: 'name',             style: { width: '130px', minWidth: '130px' } },
-  { label: '用例编号', key: 'testId',           style: { width: '140px', minWidth: '140px' } },
-  { label: '级别',     key: 'level',            style: { width: '80px',  minWidth: '80px'  } },
-  { label: '预置条件',         key: 'precondition',     style: { width: '200px', minWidth: '200px' } },
-  { label: '测试步骤',         key: 'testSteps',        style: { width: '200px', minWidth: '200px' } },
-  { label: '预期结果',         key: 'expectedResult',   style: { width: '180px', minWidth: '180px' } },
-  { label: '自动化脚本/路径',  key: 'automationScript', style: { width: '200px', minWidth: '200px' } },
-  { label: '最后一次执行结果', key: 'lastExecResult',   style: { width: '120px', minWidth: '120px' } },
-  { label: '特性',             key: 'feature',          style: { width: '120px', minWidth: '120px' } },
-  { label: '最后执行人',       key: 'lastExecutor',     style: { width: '100px', minWidth: '100px' } },
-  { label: '测试类型',         key: 'testType',         style: { width: '80px',  minWidth: '80px'  } },
-  { label: '自动化类型',       key: 'isAutomated',      style: { width: '90px',  minWidth: '90px'  } },
-]
+const dialogCaseColumns = computed(() => {
+  if (!isAdmin.value) {
+    return [
+      { label: '', key: 'select', style: { width: '72px', minWidth: '72px' } },
+      { label: '名称', key: 'name', style: { width: '160px', minWidth: '160px' } },
+      { label: '用例模块', key: 'testCaseModule', style: { width: '100px', minWidth: '100px' } },
+      { label: '最后一次执行结果', key: 'lastExecResult', style: { width: '140px', minWidth: '140px' } },
+    ]
+  }
+  return [
+    { label: '', key: 'select', style: { width: '72px', minWidth: '72px' } },
+    { label: '名称', key: 'name', style: { width: '140px', minWidth: '140px' } },
+    { label: '编号', key: 'testId', style: { width: '140px', minWidth: '140px' } },
+    { label: '级别', key: 'level', style: { width: '100px', minWidth: '100px' } },
+    { label: '预置条件', key: 'precondition', style: { width: '200px', minWidth: '200px' } },
+    { label: '测试步骤', key: 'testSteps', style: { width: '200px', minWidth: '200px' } },
+    { label: '预期结果', key: 'expectedResult', style: { width: '180px', minWidth: '180px' } },
+    { label: '自动化脚本/路径', key: 'automationScript', style: { width: '240px', minWidth: '240px' } },
+    { label: '最后一次执行结果', key: 'lastExecResult', style: { width: '120px', minWidth: '120px' } },
+    { label: '用例模块', key: 'testCaseModule', style: { width: '80px', minWidth: '80px' } },
+    { label: '最后执行人', key: 'lastExecutor', style: { width: '100px', minWidth: '100px' } },
+    { label: '测试类型', key: 'testType', style: { width: '80px', minWidth: '80px' } },
+    { label: '自动化类型', key: 'isAutomated', style: { width: '90px', minWidth: '90px' } },
+  ]
+})
 
 // 用例展示辅助函数（与 TestCaseTab 保持一致）
 const dlgExecColor = (r: string) =>
-  ({ passed: 'success', fail: 'danger', block: 'warning', unavailable: 'info', pending: 'info' }[r] ?? 'info')
+  ({ passed: 'success', fail: 'danger', block: 'warning', unavailable: 'normal', pending: 'info' }[r] ?? 'info')
 const dlgExecLabel = (r: string) =>
-  ({ passed: 'Passed', fail: 'Fail', block: 'Block', unavailable: 'Unavailable', pending: '—' }[r] ?? r)
+  ({ passed: '通过', fail: '失败', block: '阻塞', unavailable: '不可用', pending: '—' }[r] ?? r)
 const dlgTypeLabel = (tp: string) =>
   ({ functional: '功能', performance: '性能', reliability: '可靠性', compatibility: '兼容性',
      security: '安全性', serviceability: '可服务性', usability: '易用性' }[tp] ?? tp)
@@ -377,6 +403,56 @@ const executePipeline = () => {
   }, 11000)
 }
 
+const retryPipeline = (task: PipelineTask) => {
+  const idx = livePipelineTasks.value.findIndex(t => t.id === task.id)
+  if (idx !== -1) {
+    livePipelineTasks.value.splice(idx, 1)
+  }
+  const taskNo = String(livePipelineTasks.value.length + MOCK_PIPELINE_TASKS.filter(t => t.projectId === selectedProjectId.value).length + 1).padStart(3, '0')
+  const now = new Date()
+  const startStr = `${now.getFullYear()}.${now.getMonth()+1}.${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
+  const newTask = reactive({
+    id: `live-retry-${Date.now()}`,
+    projectId: selectedProjectId.value,
+    taskId: `PL-${taskNo}`,
+    buildStatus: 'running' as string,
+    isoStatus:   'pending' as string,
+    testStatus:  'pending' as string,
+    pipelineStatus: 'running' as string,
+    startedAt: startStr,
+    endedAt:  null as string | null,
+    duration: null as string | null,
+    executor: currentUser.value?.name ?? 'admin',
+    buildLink: undefined as string | undefined,
+    isoLink: undefined as string | undefined,
+    testLink: undefined as string | undefined,
+  })
+  livePipelineTasks.value = [newTask, ...livePipelineTasks.value]
+  OMessage.success(`重试流水线 ${newTask.taskId}，包构建进行中...`)
+  setTimeout(() => {
+    newTask.buildStatus = 'success'
+    newTask.buildLink = `https://build.openeuler.org/${newTask.taskId}`
+    newTask.isoStatus = 'running'
+    OMessage.success(`[${newTask.taskId}] 包构建成功，ISO构建进行中...`)
+  }, 3000)
+  setTimeout(() => {
+    newTask.isoStatus = 'success'
+    newTask.isoLink = `https://iso.openeuler.org/${newTask.taskId}`
+    newTask.testStatus = 'running'
+    OMessage.success(`[${newTask.taskId}] ISO构建成功，测试执行中...`)
+  }, 7000)
+  setTimeout(() => {
+    newTask.testStatus = 'success'
+    newTask.testLink = `https://test.openeuler.org/${newTask.taskId}`
+    newTask.pipelineStatus = 'success'
+    const end = new Date()
+    const endStr = `${end.getFullYear()}.${end.getMonth()+1}.${end.getDate()} ${String(end.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
+    newTask.endedAt = endStr
+    newTask.duration = '11分钟'
+    OMessage.success(`[${newTask.taskId}] 流水线执行完成 ✓`)
+  }, 11000)
+}
+
 // 文件上传模拟
 const handleBuildUpload = async () => { await new Promise(r => setTimeout(r, 600)); return Promise.resolve() }
 
@@ -405,7 +481,7 @@ interface AddProjectForm {
 
 const EMPTY_PROJECT: AddProjectForm = {
   name: '', description: '', kernelVersion: '', osVersion: '',
-  status: 'active', owner: '',
+  status: '开发中', owner: '',
   productVersion: '950', cpuArch: 'x86_64',
   startDate: '', devStartDate: '', devEndDate: '',
   testStartDate: '', testEndDate: '', deliverDate: '',
@@ -431,24 +507,14 @@ const handleAddProjectConfirm = () => {
 
 <template>
   <section class="proj-detail">
-    <!-- Admin notice -->
-    <div v-if="isAdmin" class="proj-detail__notice">
-      <span class="proj-detail__notice-icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12.0312 2.34969C13.6625 2.34969 15.2371 2.75343 16.6415 3.51339C16.9815 3.69739 17.108 4.12218 16.924 4.46218C16.74 4.80219 16.3152 4.92867 15.9752 4.74467C14.7742 4.09476 13.4284 3.74969 12.0312 3.74969C7.44721 3.74969 3.73118 7.46573 3.73118 12.0497C3.73118 16.6337 7.44721 20.3497 12.0312 20.3497C16.6151 20.3497 20.3312 16.6337 20.3312 12.0497C20.3312 9.98725 19.577 8.04389 18.234 6.53456C17.977 6.24575 18.0028 5.80329 18.2916 5.54629C18.5804 5.2893 19.0229 5.31509 19.2799 5.60391C20.8489 7.36716 21.7312 9.64078 21.7312 12.0497C21.7312 17.4069 17.3883 21.7497 12.0312 21.7497C6.67402 21.7497 2.33118 17.4069 2.33118 12.0497C2.33118 6.69253 6.67401 2.34969 12.0312 2.34969ZM13.1333 7.65356C13.1333 8.27889 12.6253 8.78685 12 8.78685C11.3747 8.78685 10.8667 8.27889 10.8667 7.65356C10.8667 7.02823 11.3747 6.52027 12 6.52027C12.6253 6.52027 13.1333 7.02823 13.1333 7.65356ZM12.7065 9.99663C12.6614 9.65479 12.3695 9.39036 12.0151 9.38905C11.6285 9.38762 11.314 9.69985 11.3125 10.0864L11.2875 16.85L11.2935 16.945C11.3386 17.2869 11.6305 17.5513 11.9849 17.5526C12.3715 17.5541 12.686 17.2418 12.6875 16.8552L12.7125 10.0916L12.7065 9.99663Z" fill="currentColor" fill-opacity="0.8"/>
-        </svg>
-      </span>
-      <span>{{ t('project.adminNotice') }}</span>
-    </div>
-
-    <!-- Project selector row -->
+        <!-- Project selector row -->
     <div class="proj-detail__selector-row">
       <div class="proj-detail__selector-left">
         <span class="proj-detail__selector-label">项目</span>
         <OSelect v-model="selectedProjectId" class="proj-detail__selector" @change="syncForm">
           <OOption v-for="o in projectOptions" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
-        <OTag color="success" size="medium" class="proj-detail__status-tag">{{ t('project.statusActive') }}</OTag>
+        <OTag :color="projStatusColor" size="medium" class="proj-detail__status-tag">{{ project?.status }}</OTag>
       </div>
       <div class="proj-detail__selector-right">
         <OButton variant="outline" size="medium" round="pill">{{ t('project.generateReport') }}</OButton>
@@ -466,7 +532,7 @@ const handleAddProjectConfirm = () => {
             <div class="proj-detail__section-title">
               <span class="proj-detail__section-bar" />
               {{ t('project.basicInfo') }}
-              <OTag color="success" size="medium">{{ t('project.statusActive') }}</OTag>
+              <OTag :color="projStatusColor" size="medium">{{ project?.status }}</OTag>
             </div>
 
             <ODivider darker />
@@ -476,52 +542,52 @@ const handleAddProjectConfirm = () => {
                 <label class="proj-detail__form-label">
                   <span class="proj-detail__required">*</span>{{ t('project.nameField') }}
                 </label>
-                <OInput v-model="form.name" />
+                <OInput v-model="form.name" :disabled="!isAdmin" />
               </div>
               <div class="proj-detail__form-field">
                 <label class="proj-detail__form-label">{{ t('project.idField') }}</label>
                 <OInput :model-value="project?.projectId" disabled />
               </div>
               <div class="proj-detail__form-field proj-detail__form-field--full">
-                <label class="proj-detail__form-label"><span class="proj-detail__required">*</span>{{ t('project.descField') }}</label>
-                <OTextarea v-model="form.description" :rows="3" />
+                <label class="proj-detail__form-label"><span v-if="isAdmin" class="proj-detail__required">*</span>{{ t('project.descField') }}</label>
+                <OTextarea v-model="form.description" :rows="3" :disabled="!isAdmin" />
               </div>
               <div class="proj-detail__form-field">
-                <label class="proj-detail__form-label"><span class="proj-detail__required">*</span>{{ t('project.kernelVersion') }}</label>
-                <OInput v-model="form.kernelVersion" />
+                <label class="proj-detail__form-label"><span v-if="isAdmin" class="proj-detail__required">*</span>{{ t('project.kernelVersion') }}</label>
+                <OInput v-model="form.kernelVersion" :disabled="!isAdmin" />
               </div>
               <div class="proj-detail__form-field">
-                <label class="proj-detail__form-label"><span class="proj-detail__required">*</span>{{ t('project.osVersion') }}</label>
-                <OInput v-model="form.osVersion" />
+                <label class="proj-detail__form-label"><span v-if="isAdmin" class="proj-detail__required">*</span>{{ t('project.osVersion') }}</label>
+                <OInput v-model="form.osVersion" :disabled="!isAdmin" />
               </div>
               <div class="proj-detail__form-field">
-                <label class="proj-detail__form-label"><span class="proj-detail__required">*</span>{{ t('project.statusField') }}</label>
-                <OSelect v-model="form.status">
-                  <OOption value="active" :label="t('project.statusActive')" />
-                  <OOption value="planning" :label="t('project.statusPlanning')" />
-                  <OOption value="archived" :label="t('project.statusArchived')" />
+                <label class="proj-detail__form-label"><span v-if="isAdmin" class="proj-detail__required">*</span>{{ t('project.statusField') }}</label>
+                <OSelect v-model="form.status" :disabled="!isAdmin">
+                  <OOption value="开发中" label="开发中" />
+                  <OOption value="测试中" label="测试中" />
+                  <OOption value="已完成" label="已完成" />
                 </OSelect>
               </div>
               <div class="proj-detail__form-field">
-                <label class="proj-detail__form-label"><span class="proj-detail__required">*</span>{{ t('project.ownerField') }}</label>
-                <OInput v-model="form.owner" />
+                <label class="proj-detail__form-label"><span v-if="isAdmin" class="proj-detail__required">*</span>{{ t('project.ownerField') }}</label>
+                <OInput v-model="form.owner" :disabled="!isAdmin" />
               </div>
               <div class="proj-detail__form-field">
-                <label class="proj-detail__form-label"><span class="proj-detail__required">*</span>{{ t('project.productVersion') }}</label>
-                <OSelect v-model="form.productVersion">
+                <label class="proj-detail__form-label"><span v-if="isAdmin" class="proj-detail__required">*</span>{{ t('project.productVersion') }}</label>
+                <OSelect v-model="form.productVersion" :disabled="!isAdmin">
                   <OOption value="950" label="950" />
                   <OOption value="920" label="920" />
                 </OSelect>
               </div>
               <div class="proj-detail__form-field">
-                <label class="proj-detail__form-label"><span class="proj-detail__required">*</span>{{ t('project.cpuArch') }}</label>
-                <OSelect v-model="form.cpuArch">
+                <label class="proj-detail__form-label"><span v-if="isAdmin" class="proj-detail__required">*</span>{{ t('project.cpuArch') }}</label>
+                <OSelect v-model="form.cpuArch" :disabled="!isAdmin">
                   <OOption value="x86_64" label="x86_64" />
                   <OOption value="aarch64" label="aarch64" />
                 </OSelect>
               </div>
             </div>
-            <div class="proj-detail__form-footer">
+            <div v-if="isAdmin" class="proj-detail__form-footer">
               <OButton variant="solid" color="primary" @click="handleSave" round="pill">{{ t('action.save') }}</OButton>
             </div>
           </OCard>
@@ -535,7 +601,7 @@ const handleAddProjectConfirm = () => {
               {{ t('project.timeline') }}
             </div>
             <!-- 「编辑」按钮：打开统一时间计划编辑弹窗 -->
-            <OButton variant="outline" size="medium" round="pill" @click="openTimelineEditor">
+            <OButton v-if="isAdmin" variant="outline" size="medium" round="pill" @click="openTimelineEditor">
               编辑
             </OButton>
           </div>
@@ -587,7 +653,7 @@ const handleAddProjectConfirm = () => {
       <!-- ── Tab 4: Pipeline Console ── -->
       <OTabPane value="pipeline" :label="t('project.pipeline')">
         <div class="proj-detail__pipeline">
-          <!-- 执行配置区（原弹窗内容移至此处） -->
+          <!-- 执行配置区（原弹窗内容移至此处，普通用户只读） -->
           <div class="proj-detail__pipeline-execute">
             <!-- ① 构建区 -->
             <div class="pl-execute__section-title">
@@ -636,20 +702,20 @@ const handleAddProjectConfirm = () => {
 
             <!-- 筛选器 -->
             <div class="pl-execute__filter">
-              <OSelect v-model="dialogFilter.level" placeholder="用例级别" variant="outline" size="medium"
-                class="pl-execute__sel" @change="dialogPage = 1">
+<OSelect v-model="dialogFilter.level" placeholder="用例级别" variant="outline" searchable size="medium"
+                  class="pl-execute__sel" @change="dialogPage = 1">
                 <OOption v-for="o in dialogLevelOptions" :key="o.value" :value="o.value" :label="o.label" />
               </OSelect>
-              <OSelect v-model="dialogFilter.testType" placeholder="测试类型" variant="outline" size="medium"
-                class="pl-execute__sel" @change="dialogPage = 1">
+<OSelect v-model="dialogFilter.testType" placeholder="测试类型" variant="outline" searchable size="medium"
+                  class="pl-execute__sel" @change="dialogPage = 1">
                 <OOption v-for="o in dialogTypeOptions" :key="o.value" :value="o.value" :label="o.label" />
               </OSelect>
-              <OSelect v-model="dialogFilter.autoStatus" placeholder="自动化类型" variant="outline" size="medium"
-                class="pl-execute__sel" @change="dialogPage = 1">
+<OSelect v-model="dialogFilter.autoStatus" placeholder="自动化类型" variant="outline" searchable size="medium"
+                  class="pl-execute__sel" @change="dialogPage = 1">
                 <OOption v-for="o in dialogAutoOptions" :key="o.value" :value="o.value" :label="o.label" />
               </OSelect>
-              <OSelect v-model="dialogFilter.execResult" placeholder="用例执行结果" variant="outline" size="medium"
-                class="pl-execute__sel pl-execute__sel--wide" @change="dialogPage = 1">
+<OSelect v-model="dialogFilter.execResult" placeholder="用例执行结果" variant="outline" searchable size="medium"
+                  class="pl-execute__sel pl-execute__sel--wide" @change="dialogPage = 1">
                 <OOption v-for="o in dialogResultOptions" :key="o.value" :value="o.value" :label="o.label" />
               </OSelect>
               <OLink color="primary" @click="clearDialogFilter">清除筛选</OLink>
@@ -690,9 +756,9 @@ const handleAddProjectConfirm = () => {
                     {{ dlgExecLabel(row.lastExecResult) }}
                   </OTag>
                 </template>
-                <template #td_feature="{ row }">
-                  <span class="pl-execute__cell-plain">{{ row.feature || '—' }}</span>
-                </template>
+<template #td_testCaseModule="{ row }">
+          <span class="pl-execute__cell-plain">{{ row.testCaseModule || '—' }}</span>
+        </template>
                 <template #td_lastExecutor="{ row }">
                   <span class="pl-execute__cell-plain">{{ row.lastExecutor || '—' }}</span>
                 </template>
@@ -700,7 +766,7 @@ const handleAddProjectConfirm = () => {
                   <span class="pl-execute__cell-plain">{{ dlgTypeLabel(row.testType) }}</span>
                 </template>
                 <template #td_isAutomated="{ row }">
-                  <OTag :color="row.isAutomated ? 'success' : 'info'" size="medium" variant="outline">
+                  <OTag :color="row.isAutomated ? 'success' : 'danger'" size="medium">
                     {{ row.isAutomated ? 'TRUE' : 'FALSE' }}
                   </OTag>
                 </template>
@@ -729,19 +795,28 @@ const handleAddProjectConfirm = () => {
 
           <OTable :columns="pipelineColumns" :data="pipelineTasks">
             <template #td_buildStatus="{ row }">
-              <OTag :color="pipelineStatusColor(row.buildStatus)" size="medium">
-                {{ pipelineStatusLabel(row.buildStatus) }}
-              </OTag>
+              <div class="pl-status-cell">
+                <OTag :color="pipelineStatusColor(row.buildStatus)" size="medium">
+                  {{ pipelineStatusLabel(row.buildStatus) }}
+                </OTag>
+                <a v-if="row.buildLink" :href="row.buildLink" target="_blank" class="pl-status-link">{{ row.buildLink }}</a>
+              </div>
             </template>
             <template #td_isoStatus="{ row }">
-              <OTag :color="pipelineStatusColor(row.isoStatus)" size="medium" :variant="row.isoStatus === 'pending' ? 'outline' : 'filled'">
-                {{ pipelineStatusLabel(row.isoStatus) }}
-              </OTag>
+              <div class="pl-status-cell">
+                <OTag :color="pipelineStatusColor(row.isoStatus)" size="medium" :variant="row.isoStatus === 'pending' ? 'outline' : 'filled'">
+                  {{ pipelineStatusLabel(row.isoStatus) }}
+                </OTag>
+                <a v-if="row.isoLink" :href="row.isoLink" target="_blank" class="pl-status-link">{{ row.isoLink }}</a>
+              </div>
             </template>
             <template #td_testStatus="{ row }">
-              <OTag :color="pipelineStatusColor(row.testStatus)" size="medium" :variant="row.testStatus === 'pending' ? 'outline' : 'filled'">
-                {{ pipelineStatusLabel(row.testStatus) }}
-              </OTag>
+              <div class="pl-status-cell">
+                <OTag :color="pipelineStatusColor(row.testStatus)" size="medium" :variant="row.testStatus === 'pending' ? 'outline' : 'filled'">
+                  {{ pipelineStatusLabel(row.testStatus) }}
+                </OTag>
+                <a v-if="row.testLink" :href="row.testLink" target="_blank" class="pl-status-link">{{ row.testLink }}</a>
+              </div>
             </template>
             <template #td_pipelineStatus="{ row }">
               <OTag :color="pipelineStatusColor(row.pipelineStatus)" size="medium">
@@ -750,6 +825,9 @@ const handleAddProjectConfirm = () => {
             </template>
             <template #td_endedAt="{ row }">{{ row.endedAt ?? t('misc.dash') }}</template>
             <template #td_duration="{ row }">{{ row.duration ?? t('misc.dash') }}</template>
+            <template #td_action="{ row }">
+              <OButton variant="outline" color="primary" size="small" round="pill" :disabled="row.buildStatus !== 'failed' && row.isoStatus !== 'failed' && row.testStatus !== 'failed'" @click="retryPipeline(row)">{{ t('pipeline.retry') }}</OButton>
+            </template>
           </OTable>
         </div>
       </OTabPane>
@@ -906,19 +984,19 @@ const handleAddProjectConfirm = () => {
 
         <!-- 筛选器 -->
         <div class="pl-dialog__filter">
-          <OSelect v-model="dialogFilter.level" placeholder="用例级别" variant="outline" round="pill" size="small"
+          <OSelect v-model="dialogFilter.level" placeholder="用例级别" variant="outline" searchable round="pill" size="small"
             class="pl-dialog__filter-sel" @change="dialogPage = 1">
             <OOption v-for="o in dialogLevelOptions" :key="o.value" :value="o.value" :label="o.label" />
           </OSelect>
-          <OSelect v-model="dialogFilter.testType" placeholder="测试类型" variant="outline" round="pill" size="small"
+          <OSelect v-model="dialogFilter.testType" placeholder="测试类型" variant="outline" searchable round="pill" size="small"
             class="pl-dialog__filter-sel" @change="dialogPage = 1">
             <OOption v-for="o in dialogTypeOptions" :key="o.value" :value="o.value" :label="o.label" />
           </OSelect>
-          <OSelect v-model="dialogFilter.autoStatus" placeholder="自动化类型" variant="outline" round="pill" size="small"
+          <OSelect v-model="dialogFilter.autoStatus" placeholder="自动化类型" variant="outline" searchable round="pill" size="small"
             class="pl-dialog__filter-sel" @change="dialogPage = 1">
             <OOption v-for="o in dialogAutoOptions" :key="o.value" :value="o.value" :label="o.label" />
           </OSelect>
-          <OSelect v-model="dialogFilter.execResult" placeholder="用例执行结果" variant="outline" round="pill" size="small"
+          <OSelect v-model="dialogFilter.execResult" placeholder="用例执行结果" variant="outline" searchable round="pill" size="small"
             class="pl-dialog__filter-sel pl-dialog__filter-sel--wide" @change="dialogPage = 1">
             <OOption v-for="o in dialogResultOptions" :key="o.value" :value="o.value" :label="o.label" />
           </OSelect>
@@ -962,8 +1040,8 @@ const handleAddProjectConfirm = () => {
                 {{ dlgExecLabel(row.lastExecResult) }}
               </OTag>
             </template>
-            <template #td_feature="{ row }">
-              <span class="pl-dialog__cell-plain">{{ row.feature || '—' }}</span>
+            <template #td_testCaseModule="{ row }">
+              <span class="pl-dialog__cell-plain">{{ row.testCaseModule || '—' }}</span>
             </template>
             <template #td_lastExecutor="{ row }">
               <span class="pl-dialog__cell-plain">{{ row.lastExecutor || '—' }}</span>
@@ -972,7 +1050,7 @@ const handleAddProjectConfirm = () => {
               <span class="pl-dialog__cell-plain">{{ dlgTypeLabel(row.testType) }}</span>
             </template>
             <template #td_isAutomated="{ row }">
-              <OTag :color="row.isAutomated ? 'success' : 'info'" size="medium" variant="outline">
+              <OTag :color="row.isAutomated ? 'success' : 'danger'" size="medium">
                 {{ row.isAutomated ? 'TRUE' : 'FALSE' }}
               </OTag>
             </template>
@@ -1025,23 +1103,31 @@ const handleAddProjectConfirm = () => {
             <OInput v-model="addProjectDialog.form.owner" placeholder="请输入负责人姓名" clearable />
           </div>
           <div class="add-proj-form__field add-proj-form__field--full">
-            <label class="add-proj-form__label">项目描述</label>
+            <label class="add-proj-form__label">
+              <span class="add-proj-form__required">*</span>项目描述
+            </label>
             <OTextarea v-model="addProjectDialog.form.description" placeholder="请输入项目描述" :rows="3" />
           </div>
           <div class="add-proj-form__field">
-            <label class="add-proj-form__label">内核版本</label>
+            <label class="add-proj-form__label">
+              <span class="add-proj-form__required">*</span>内核版本
+            </label>
             <OInput v-model="addProjectDialog.form.kernelVersion" placeholder="例：5.10" clearable />
           </div>
           <div class="add-proj-form__field">
-            <label class="add-proj-form__label">OS版本</label>
+            <label class="add-proj-form__label">
+              <span class="add-proj-form__required">*</span>OS版本
+            </label>
             <OInput v-model="addProjectDialog.form.osVersion" placeholder="例：openEuler 24.03 LTS" clearable />
           </div>
           <div class="add-proj-form__field">
-            <label class="add-proj-form__label">项目状态</label>
+            <label class="add-proj-form__label">
+              <span class="add-proj-form__required">*</span>项目状态
+            </label>
             <OSelect v-model="addProjectDialog.form.status">
-              <OOption value="active"   :label="t('project.statusActive')" />
-              <OOption value="planning" :label="t('project.statusPlanning')" />
-              <OOption value="archived" :label="t('project.statusArchived')" />
+              <OOption value="开发中" label="开发中" />
+              <OOption value="测试中" label="测试中" />
+              <OOption value="已完成" label="已完成" />
             </OSelect>
           </div>
         </div>
@@ -1054,7 +1140,9 @@ const handleAddProjectConfirm = () => {
         </div>
         <div class="add-proj-form__grid">
           <div class="add-proj-form__field">
-            <label class="add-proj-form__label">产品版本</label>
+            <label class="add-proj-form__label">
+              <span class="add-proj-form__required">*</span>产品版本
+            </label>
             <OSelect v-model="addProjectDialog.form.productVersion">
               <OOption value="950"    label="950" />
               <OOption value="950Pro" label="950Pro" />
@@ -1062,7 +1150,9 @@ const handleAddProjectConfirm = () => {
             </OSelect>
           </div>
           <div class="add-proj-form__field">
-            <label class="add-proj-form__label">CPU架构</label>
+            <label class="add-proj-form__label">
+              <span class="add-proj-form__required">*</span>CPU架构
+            </label>
             <OSelect v-model="addProjectDialog.form.cpuArch">
               <OOption value="x86_64"  label="x86_64" />
               <OOption value="aarch64" label="aarch64" />
@@ -1075,12 +1165,13 @@ const handleAddProjectConfirm = () => {
         <!-- 时间计划 -->
         <div class="add-proj-form__section-title">
           <span class="add-proj-form__bar" />时间计划
+          <span class="add-proj-form__required">*</span>
           <span class="add-proj-form__hint">日期格式：YYYY-MM-DD</span>
         </div>
         <div class="add-proj-form__timeline">
           <!-- 启动 -->
           <div class="add-proj-form__timeline-row">
-            <span class="add-proj-form__timeline-label">启动</span>
+            <span class="add-proj-form__timeline-label"><span class="add-proj-form__required">*</span>启动</span>
             <div class="add-proj-form__timeline-dates">
               <OInput v-model="addProjectDialog.form.startDate"
                 placeholder="开始日期（必填）" clearable class="add-proj-form__date-input" />
@@ -1089,31 +1180,31 @@ const handleAddProjectConfirm = () => {
           </div>
           <!-- 开发 -->
           <div class="add-proj-form__timeline-row">
-            <span class="add-proj-form__timeline-label">开发</span>
+            <span class="add-proj-form__timeline-label"><span class="add-proj-form__required">*</span>开发</span>
             <div class="add-proj-form__timeline-dates">
               <OInput v-model="addProjectDialog.form.devStartDate"
-                placeholder="开始日期" clearable class="add-proj-form__date-input" />
+                placeholder="开始日期（必填）" clearable class="add-proj-form__date-input" />
               <span class="add-proj-form__arrow">→</span>
               <OInput v-model="addProjectDialog.form.devEndDate"
-                placeholder="结束日期（可选）" clearable class="add-proj-form__date-input" />
+                placeholder="结束日期（必填）" clearable class="add-proj-form__date-input" />
             </div>
             <span class="add-proj-form__timeline-tag add-proj-form__timeline-tag--flex">可多时段</span>
           </div>
           <!-- 测试 -->
           <div class="add-proj-form__timeline-row">
-            <span class="add-proj-form__timeline-label">测试</span>
+            <span class="add-proj-form__timeline-label"><span class="add-proj-form__required">*</span>测试</span>
             <div class="add-proj-form__timeline-dates">
               <OInput v-model="addProjectDialog.form.testStartDate"
-                placeholder="开始日期" clearable class="add-proj-form__date-input" />
+                placeholder="开始日期（必填）" clearable class="add-proj-form__date-input" />
               <span class="add-proj-form__arrow">→</span>
               <OInput v-model="addProjectDialog.form.testEndDate"
-                placeholder="结束日期（可选）" clearable class="add-proj-form__date-input" />
+                placeholder="结束日期（必填）" clearable class="add-proj-form__date-input" />
             </div>
             <span class="add-proj-form__timeline-tag add-proj-form__timeline-tag--flex">可多时段</span>
           </div>
           <!-- 交付 -->
           <div class="add-proj-form__timeline-row">
-            <span class="add-proj-form__timeline-label">交付</span>
+            <span class="add-proj-form__timeline-label"><span class="add-proj-form__required">*</span>交付</span>
             <div class="add-proj-form__timeline-dates">
               <OInput v-model="addProjectDialog.form.deliverDate"
                 placeholder="开始日期（必填）" clearable class="add-proj-form__date-input" />
@@ -1357,7 +1448,7 @@ const handleAddProjectConfirm = () => {
   }
 
   // ── 表格单元格统一样式 ────────────────────────────────────────────────
-  &__cell-name { color: var(--o-color-info1); font-size: var(--o-r-font_size-tip1); font-weight: var(--o-font_weight-bold); line-height: var(--o-r-line_height-tip1); }
+  &__cell-name { color: var(--o-color-info1); font-size: var(--o-r-font_size-tip1); font-weight: var(--o-font_weight-regular); line-height: var(--o-r-line_height-tip1); }
   &__cell-id { color: var(--o-color-info3); font-size: var(--o-r-font_size-tip2); font-family: var(--o-font_family-code); white-space: nowrap; }
   &__cell-text { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); line-height: var(--o-r-line_height-tip1); word-break: break-all; }
   &__cell-script { color: var(--o-color-primary1); font-size: var(--o-r-font_size-tip2); font-family: var(--o-font_family-code); word-break: break-all; line-height: var(--o-r-line_height-tip2); }
@@ -1694,7 +1785,7 @@ const handleAddProjectConfirm = () => {
     display: flex;
     align-items: center;
     gap: var(--o-r-gap-4);
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
   &__timeline-label {
@@ -1703,6 +1794,7 @@ const handleAddProjectConfirm = () => {
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-text1);
     font-weight: var(--o-font_weight-bold);
+    white-space: nowrap;
   }
 
   &__timeline-dates {
@@ -1710,7 +1802,8 @@ const handleAddProjectConfirm = () => {
     align-items: center;
     gap: var(--o-r-gap-3);
     flex: 1;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    min-width: 0;
   }
 
   &__date-input { width: 180px; }
@@ -1761,7 +1854,6 @@ const handleAddProjectConfirm = () => {
 }
 .pl-dialog__table-wrap table,
 .pl-execute__table-wrap table {
-  min-width: 1692px;
   table-layout: fixed;
 }
 .pl-dialog__table-wrap th,
@@ -1778,8 +1870,21 @@ const handleAddProjectConfirm = () => {
 .pl-execute__table-wrap th:first-child,
 .pl-execute__table-wrap td:first-child {
   overflow: visible;
-  text-align: center;
-  padding-left: 16px;
+  text-align: left;
+}
+.pl-status-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pl-status-link {
+  color: var(--o-color-primary);
+  text-decoration: none;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.pl-status-link:hover {
+  text-decoration: underline;
 }
 </style>
 

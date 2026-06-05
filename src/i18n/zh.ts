@@ -22,6 +22,8 @@ const zh: Record<string, string> = {
   'action.confirm': '确认',
   'action.import': '导入',
   'action.export': '导出',
+  'action.exportAll': '导出全部',
+  'action.exportSelected': '导出所选',
   'action.back': '返回',
   'action.logout': '退出登录',
   // project
@@ -91,7 +93,8 @@ const zh: Record<string, string> = {
   'tc.colExpected': '预期结果',
   'tc.colScript': '自动化脚本/路径',
   'tc.colAction': '操作',
-  'tc.searchPlaceholder': '请输入用例名称',
+  'tc.colModule': '用例模块',
+'tc.searchPlaceholder': '请输入用例名称',
   // pipeline
   'pipeline.runAll': '一键执行流水线',
   'pipeline.colTaskId': '任务ID',
@@ -106,6 +109,7 @@ const zh: Record<string, string> = {
   'pipeline.colAction': '操作',
   'pipeline.statusHint': '(未开始/进行中)',
   'pipeline.testHint': '(成功/失败)',
+  'pipeline.retry': '重试',
   // filter
   'filter.all': '全部',
   'filter.project': '所属项目',

@@ -52,30 +52,33 @@ const onPageChange = (val: { page: number; pageSize: number }) => {
 }
 
 // 22 列（含勾选列）— 宽度基于实际内容平均长度测算（见 pixel 注释）
-const columns = [
-  { label: '',                     key: 'select',              style: { width: '72px',  minWidth: '72px'  } }, // checkbox（含 edge-padding 32px + 复选框 + 右padding 16px = 68px min）
-  { label: '概述(SR粒度)',        key: 'title',               style: { width: '160px', minWidth: '160px' } }, // avg ~11汉字 ≈ 154+32=186px
-  { label: '功能介绍(AR粒度)',    key: 'description',         style: { width: '180px', minWidth: '180px' } }, // link+2行截断
-  { label: '关联社区Issue',       key: 'communityIssue',      style: { width: '110px', minWidth: '110px' } }, // "CVE-2026-1234" ≈ 104+32
-  { label: '补丁类型',            key: 'patchType',           style: { width: '100px', minWidth: '100px' } }, // tag "Feature_1" ≈ 104px
-  { label: '产品版本',            key: 'productVersion',      style: { width: '80px',  minWidth: '80px'  } }, // "950Pro" ≈ 48+32
-  { label: '用户态/内核态',       key: 'userKernel',          style: { width: '80px',  minWidth: '80px'  } }, // 表头 ≈ 84px
-  { label: '补丁模块',            key: 'patchModule',         style: { width: '80px',  minWidth: '80px'  } }, // "UACCE" ≈ 40+32
-  { label: 'Commit OE',          key: 'commitOE',            style: { width: '200px', minWidth: '200px' } }, // 长句折行，约50char
-  { label: 'PR前、后置补丁',      key: 'prRelated',           style: { width: '100px', minWidth: '100px' } }, // 表头宽 ≈ 100px
-  { label: 'OE Merge tag',       key: 'oeMergeTag',          style: { width: '120px', minWidth: '120px' } }, // "6.6.0-119.0.0" ≈ 104+32
-  { label: 'OE PR',              key: 'oePR',               style: { width: '200px', minWidth: '200px' } }, // 完整 PR URL
-  { label: 'Commit upstream',    key: 'commitUpstream',      style: { width: '140px', minWidth: '140px' } }, // 16位hash ≈ 128+32
-  { label: 'upstream Merge tag', key: 'upstreamMergeTag',    style: { width: '130px', minWidth: '130px' } }, // 表头 ≈ 136px
-  { label: '主键',                key: 'mainKey',             style: { width: '110px', minWidth: '110px' } }, // "321138:13916" ≈ 96+32
-  { label: '是否合入',            key: 'merged',              style: { width: '80px',  minWidth: '80px'  } }, // tag ≈ 58+32
-  { label: '客户影响',            key: 'customerImpact',      style: { width: '120px', minWidth: '120px' } }, // avg ~9汉字 ≈ 126+32
-  { label: '华为仓库合入状态',    key: 'hwRepoStatus',        style: { width: '100px', minWidth: '100px' } }, // tag "部分合入" ≈ 72+32
-  { label: '客户侧合入状态',      key: 'customerMergeStatus', style: { width: '100px', minWidth: '100px' } }, // "已合入" ≈ 42+32，表头优先
-  { label: '合入版本',            key: 'mergeVersion',        style: { width: '100px', minWidth: '100px' } }, // "main-5.10" ≈ 72+32
-  { label: 'OS发布版本',          key: 'osReleaseVersion',    style: { width: '120px', minWidth: '120px' } }, // "22.03-LTS-SP3" ≈ 104+32
-  { label: '操作',                key: 'action',              style: { width: '90px',  minWidth: '90px'  } }, // 编辑+删除 ≈ 80px
-]
+const columns = computed(() => {
+  const base = [
+    { label: '', key: 'select', style: { width: '72px', minWidth: '72px' } },
+    { label: '概述(SR粒度)',        key: 'title',               style: { width: '160px', minWidth: '160px' } },
+    { label: '功能介绍(AR粒度)',    key: 'description',         style: { width: '180px', minWidth: '180px' } },
+    { label: '关联社区Issue',       key: 'communityIssue',      style: { width: '110px', minWidth: '110px' } },
+    { label: '补丁类型',            key: 'patchType',           style: { width: '100px', minWidth: '100px' } },
+    { label: '产品版本',            key: 'productVersion',      style: { width: '80px',  minWidth: '80px'  } },
+    { label: '用户态/内核态',       key: 'userKernel',          style: { width: '80px',  minWidth: '80px'  } },
+    { label: '补丁模块',            key: 'patchModule',         style: { width: '80px',  minWidth: '80px'  } },
+    { label: 'Commit OE',          key: 'commitOE',            style: { width: '200px', minWidth: '200px' } },
+    { label: 'PR前、后置补丁',      key: 'prRelated',           style: { width: '100px', minWidth: '100px' } },
+    { label: 'OE Merge tag',       key: 'oeMergeTag',          style: { width: '120px', minWidth: '120px' } },
+    { label: 'OE PR',              key: 'oePR',               style: { width: '200px', minWidth: '200px' } },
+    { label: 'Commit upstream',    key: 'commitUpstream',      style: { width: '140px', minWidth: '140px' } },
+    { label: 'upstream Merge tag', key: 'upstreamMergeTag',    style: { width: '130px', minWidth: '130px' } },
+    { label: '唯一标识符',                key: 'mainKey',             style: { width: '110px', minWidth: '110px' } },
+    { label: '是否合入',            key: 'merged',              style: { width: '80px',  minWidth: '80px'  } },
+    { label: '客户影响',            key: 'customerImpact',      style: { width: '120px', minWidth: '120px' } },
+    { label: '华为仓库合入状态',    key: 'hwRepoStatus',        style: { width: '100px', minWidth: '100px' } },
+    { label: '客户侧合入状态',      key: 'customerMergeStatus', style: { width: '100px', minWidth: '100px' } },
+    { label: '合入版本',            key: 'mergeVersion',        style: { width: '100px', minWidth: '100px' } },
+    { label: 'OS发布版本',          key: 'osReleaseVersion',    style: { width: '120px', minWidth: '120px' } },
+    ...(isAdmin.value ? [{ label: '操作', key: 'action', style: { width: '150px', minWidth: '150px' } }] : []),
+  ]
+  return base
+})
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
 const stats = computed(() => [
@@ -256,23 +259,23 @@ const handleExport = (type: 'all' | 'selected') => {
     <!-- 筛选器 + 操作按钮（同一行） -->
     <div class="patch-tab__filter-row">
       <div class="patch-tab__filter">
-        <OSelect v-model="filters.module" placeholder="补丁模块" variant="outline" size="medium"
+        <OSelect v-model="filters.module" placeholder="补丁模块" variant="outline" searchable size="medium"
           class="patch-tab__sel" @change="handleQuery">
           <OOption v-for="o in moduleOptions" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
-        <OSelect v-model="filters.patchType" placeholder="补丁类型" variant="outline" size="medium"
+        <OSelect v-model="filters.patchType" placeholder="补丁类型" variant="outline" searchable size="medium"
           class="patch-tab__sel" @change="handleQuery">
           <OOption v-for="o in patchTypeOptions" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
-        <OSelect v-model="filters.version" placeholder="产品版本" variant="outline" size="medium"
+        <OSelect v-model="filters.version" placeholder="产品版本" variant="outline" searchable size="medium"
           class="patch-tab__sel" @change="handleQuery">
           <OOption v-for="o in versionOptions" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
-        <OSelect v-model="filters.mergeStatus" placeholder="合入状态" variant="outline" size="medium"
+        <OSelect v-model="filters.mergeStatus" placeholder="合入状态" variant="outline" searchable size="medium"
           class="patch-tab__sel" @change="handleQuery">
           <OOption v-for="o in mergeOptions" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
-        <OSelect v-model="filters.hwRepoStatus" placeholder="华为仓库状态" variant="outline" size="medium"
+        <OSelect v-model="filters.hwRepoStatus" placeholder="华为仓库状态" variant="outline" searchable size="medium"
           class="patch-tab__sel patch-tab__sel--wide" @change="handleQuery">
           <OOption v-for="o in hwRepoOptions" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
@@ -280,7 +283,7 @@ const handleExport = (type: 'all' | 'selected') => {
       </div>
 
       <div class="patch-tab__actions">
-        <OButton variant="solid" color="primary" size="medium" @click="openAddDialog">
+        <OButton v-if="isAdmin" variant="solid" color="primary" size="medium" @click="openAddDialog">
           {{ t('patch.create') }}
         </OButton>
         <OButton variant="outline" size="medium" @click="handleMerge()">
@@ -289,7 +292,7 @@ const handleExport = (type: 'all' | 'selected') => {
         <OButton variant="outline" size="medium" @click="handleViewCases()">
           {{ t('patch.viewCases') }}
         </OButton>
-        <ODropdown trigger="click">
+        <ODropdown v-if="isAdmin" trigger="click">
           <OButton variant="outline" size="medium">
             更多操作
             <template #suffix>
@@ -301,7 +304,8 @@ const handleExport = (type: 'all' | 'selected') => {
           <template #dropdown>
             <div class="more-menu">
               <div class="more-menu__item" @click="importDialog.visible = true">{{ t('action.import') }}</div>
-              <div class="more-menu__item" @click="handleExport('all')">{{ t('action.export') }}</div>
+              <div class="more-menu__item" @click="handleExport('all')">{{ t('action.exportAll') }}</div>
+              <div class="more-menu__item" @click="handleExport('selected')">{{ t('action.exportSelected') }}</div>
               <div class="more-menu__item more-menu__item--danger" @click="handleBatchDelete()">{{ t('patch.batchDelete') }}</div>
             </div>
           </template>
@@ -313,8 +317,8 @@ const handleExport = (type: 'all' | 'selected') => {
     <div class="patch-tab__table-wrap">
       <OTable :columns="columns" :data="pagedRows">
         <!-- 勾选列：全选 header + 每行 checkbox
-             官方用法：全选用 v-model(boolean)；行选用 v-model(array) + :value
-             OCheckbox 内部自动处理数组的 push/filter，最可靠 -->
+              官方用法：全选用 v-model(boolean)；行选用 v-model(array) + :value
+              OCheckbox 内部自动处理数组的 push/filter，最可靠 -->
         <template #th_select>
           <OCheckbox v-model="allChecked" />
         </template>
@@ -329,7 +333,7 @@ const handleExport = (type: 'all' | 'selected') => {
           <span v-else class="patch-tab__muted">—</span>
         </template>
         <template #td_patchType="{ row }">
-          <OTag color="danger" size="medium">{{ row.patchType }}</OTag>
+          <OTag color="normal" size="medium">{{ row.patchType }}</OTag>
         </template>
         <template #td_userKernel="{ row }">
           <span class="patch-tab__muted">{{ row.userKernel ?? '—' }}</span>
@@ -347,7 +351,7 @@ const handleExport = (type: 'all' | 'selected') => {
           <span class="patch-tab__cell-id">{{ row.commitUpstream ? row.commitUpstream.slice(0, 12) : '—' }}</span>
         </template>
         <template #td_merged="{ row }">
-          <OTag :color="row.merged ? 'success' : 'warning'" size="medium">{{ row.merged ? '已合入' : '未合入' }}</OTag>
+          <OTag :color="row.merged ? 'success' : 'danger'" size="medium">{{ row.merged ? '已合入' : '未合入' }}</OTag>
         </template>
         <template #td_hwRepoStatus="{ row }">
           <OTag :color="hwRepoColor(row.hwRepoStatus)" size="medium">{{ hwRepoLabel(row.hwRepoStatus) }}</OTag>
@@ -358,8 +362,8 @@ const handleExport = (type: 'all' | 'selected') => {
         <template #td_osReleaseVersion="{ row }">
           <span class="patch-tab__muted">{{ row.osReleaseVersion || '—' }}</span>
         </template>
-        <template #td_action>
-          <div style="display:flex;gap:8px;white-space:nowrap">
+        <template v-if="isAdmin" #td_action>
+          <div class="patch-tab__action-cell">
             <OLink color="primary" href="javascript:void(0)">{{ t('action.edit') }}</OLink>
             <OLink color="danger" href="javascript:void(0)">{{ t('action.delete') }}</OLink>
           </div>
@@ -447,7 +451,7 @@ const handleExport = (type: 'all' | 'selected') => {
         </div>
         <div class="patch-form__field">
           <label class="patch-form__label"><span class="patch-form__required">*</span>用户态/内核态</label>
-          <OSelect v-model="addDialog.form.userKernel" placeholder="请选择（可选）">
+          <OSelect v-model="addDialog.form.userKernel" placeholder="请选择">
             <OOption value="用户态" label="用户态" />
             <OOption value="内核" label="内核" />
           </OSelect>
@@ -463,7 +467,7 @@ const handleExport = (type: 'all' | 'selected') => {
         </div>
         <div class="patch-form__field">
           <label class="patch-form__label"><span class="patch-form__required">*</span>关联社区Issue</label>
-          <OInput v-model="addDialog.form.communityIssue" placeholder="例：I9X2K1（可选）" clearable />
+          <OInput v-model="addDialog.form.communityIssue" placeholder="例：I9X2K1" clearable />
         </div>
       </div>
 
@@ -488,15 +492,15 @@ const handleExport = (type: 'all' | 'selected') => {
         </div>
         <div class="patch-form__field">
           <label class="patch-form__label"><span class="patch-form__required">*</span>PR前、后置补丁</label>
-          <OInput v-model="addDialog.form.prRelated" placeholder="可选" clearable />
+          <OInput v-model="addDialog.form.prRelated" clearable />
         </div>
         <div class="patch-form__field">
           <label class="patch-form__label"><span class="patch-form__required">*</span>Commit upstream</label>
-          <OInput v-model="addDialog.form.commitUpstream" placeholder="upstream commit hash（可选）" clearable />
+          <OInput v-model="addDialog.form.commitUpstream" placeholder="upstream commit hash" clearable />
         </div>
         <div class="patch-form__field">
-          <label class="patch-form__label"><span class="patch-form__required">*</span>upstream Merge tag</label>
-          <OInput v-model="addDialog.form.upstreamMergeTag" placeholder="例：v6.18-rc1（可选）" clearable />
+          <label class="patch-form__label">upstream Merge tag</label>
+          <OInput v-model="addDialog.form.upstreamMergeTag" placeholder="例：v6.18-rc1" clearable />
         </div>
       </div>
 
@@ -508,14 +512,14 @@ const handleExport = (type: 'all' | 'selected') => {
       </div>
       <div class="patch-form__grid">
         <div class="patch-form__field">
-          <label class="patch-form__label"><span class="patch-form__required">*</span>是否合入</label>
+          <label class="patch-form__label">是否合入</label>
           <OSelect v-model="addDialog.form.merged" placeholder="请选择">
             <OOption :value="true" label="已合入" />
             <OOption :value="false" label="未合入" />
           </OSelect>
         </div>
         <div class="patch-form__field">
-          <label class="patch-form__label"><span class="patch-form__required">*</span>华为仓库合入状态</label>
+          <label class="patch-form__label">华为仓库合入状态</label>
           <OSelect v-model="addDialog.form.hwRepoStatus" placeholder="请选择">
             <OOption value="all" label="全合入" />
             <OOption value="partial" label="部分合入" />
@@ -523,19 +527,19 @@ const handleExport = (type: 'all' | 'selected') => {
           </OSelect>
         </div>
         <div class="patch-form__field patch-form__field--full">
-          <label class="patch-form__label"><span class="patch-form__required">*</span>客户影响</label>
-          <OTextarea v-model="addDialog.form.customerImpact" placeholder="描述此补丁对客户的影响（可选）" :rows="2" />
+          <label class="patch-form__label">客户影响</label>
+          <OTextarea v-model="addDialog.form.customerImpact" placeholder="描述此补丁对客户的影响" :rows="2" />
         </div>
         <div class="patch-form__field">
-          <label class="patch-form__label"><span class="patch-form__required">*</span>客户侧合入状态<span class="patch-form__hint">（客户录入）</span></label>
+          <label class="patch-form__label">客户侧合入状态<span class="patch-form__hint">（客户录入）</span></label>
           <OInput v-model="addDialog.form.customerMergeStatus" placeholder="例：已合入" clearable />
         </div>
         <div class="patch-form__field">
-          <label class="patch-form__label"><span class="patch-form__required">*</span>合入版本<span class="patch-form__hint">（客户录入）</span></label>
+          <label class="patch-form__label">合入版本<span class="patch-form__hint">（客户录入）</span></label>
           <OInput v-model="addDialog.form.mergeVersion" placeholder="例：main-5.10" clearable />
         </div>
         <div class="patch-form__field patch-form__field--full">
-          <label class="patch-form__label"><span class="patch-form__required">*</span>OS发布版本<span class="patch-form__hint">（客户录入）</span></label>
+          <label class="patch-form__label">OS发布版本<span class="patch-form__hint">（客户录入）</span></label>
           <OInput v-model="addDialog.form.osReleaseVersion" placeholder="例：24.03-LTS" clearable />
         </div>
       </div>
@@ -766,7 +770,7 @@ const handleExport = (type: 'all' | 'selected') => {
   -webkit-overflow-scrolling: touch;
 }
 .patch-tab__table-wrap table {
-  min-width: 2572px;
+  min-width: 2632px;
   table-layout: fixed;
   word-break: break-all;
 }
@@ -780,6 +784,16 @@ const handleExport = (type: 'all' | 'selected') => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.patch-tab__table-wrap td:last-child {
+  overflow: visible;
+  text-overflow: unset;
+  vertical-align: middle;
+}
+.patch-tab__table-wrap th:last-child {
+  overflow: visible;
+  vertical-align: middle;
+}
+.patch-tab__action-cell { display: flex; align-items: center; gap: var(--o-r-gap-3); white-space: nowrap; padding: 0 var(--o-r-gap-4); }
 /* checkbox 列：确保 overflow 可见、可点击 */
 .patch-tab__table-wrap th:first-child,
 .patch-tab__table-wrap td:first-child {

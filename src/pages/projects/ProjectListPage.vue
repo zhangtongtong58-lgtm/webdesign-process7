@@ -20,9 +20,9 @@ const applied = reactive({ keyword: '', status: '', language: '' })
 
 const statusOptions = [
   { value: '', label: t('filter.all') },
-  { value: 'active', label: t('status.active') },
-  { value: 'planning', label: t('status.planning') },
-  { value: 'archived', label: t('status.archived') },
+  { value: '开发中', label: '开发中' },
+  { value: '测试中', label: '测试中' },
+  { value: '已完成', label: '已完成' },
 ]
 
 const languageOptions = computed(() => {
@@ -68,10 +68,10 @@ const statusColor = (status: string) => {
         clearable
         class="project-list__search"
       />
-      <OSelect v-model="filters.status" :placeholder="t('filter.status')" class="project-list__select">
+      <OSelect v-model="filters.status" :placeholder="t('filter.status')" searchable class="project-list__select">
         <OOption v-for="opt in statusOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
       </OSelect>
-      <OSelect v-model="filters.language" :placeholder="t('filter.language')" class="project-list__select">
+      <OSelect v-model="filters.language" :placeholder="t('filter.language')" searchable class="project-list__select">
         <OOption v-for="opt in languageOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
       </OSelect>
       <div class="project-list__btns">

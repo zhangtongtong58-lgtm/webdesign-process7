@@ -4,15 +4,18 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { t } from '../i18n/zh'
 
-const { currentUser, logout } = useAuth()
+const { currentUser, isAdmin, logout } = useAuth()
 const router  = useRouter()
 const route   = useRoute()
 
-const navItems = computed(() => [
-  { key: 'projects',  label: t('nav.projects'),  path: '/projects' },
-  { key: 'patches',   label: t('nav.patches'),   path: '/patches' },
-  { key: 'testcases', label: t('nav.testcases'), path: '/testcases' },
-])
+const navItems = computed(() => {
+  const all = [
+    { key: 'projects',  label: t('nav.projects'),  path: '/projects' },
+    { key: 'patches',   label: t('nav.patches'),   path: '/patches' },
+    { key: 'testcases', label: t('nav.testcases'), path: '/testcases' },
+  ]
+  return isAdmin.value ? all : all.filter(n => n.key === 'projects')
+})
 
 const activeKey = computed(() => {
   const p = route.path

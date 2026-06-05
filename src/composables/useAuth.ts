@@ -26,11 +26,20 @@ export function useAuth() {
     _user.value = null
   }
 
+  const switchRole = () => {
+    if (!_user.value) return
+    _user.value = {
+      ..._user.value,
+      role: _user.value.role === 'admin' ? 'member' : 'admin',
+    }
+  }
+
   return {
     currentUser: readonly(_user),
     isAdmin,
     isLoggedIn,
     login,
     logout,
+    switchRole,
   }
 }

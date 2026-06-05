@@ -7,7 +7,7 @@ import {
 } from '@opensig/opendesign'
 import { useAuth } from '../../composables/useAuth'
 
-const { currentUser, isAdmin, logout } = useAuth()
+const { currentUser, isAdmin, logout, switchRole } = useAuth()
 const router = useRouter()
 
 const handleLogout = () => { logout(); router.push('/login') }
@@ -157,8 +157,12 @@ const confirmAddMember = () => {
         <div class="profile__form-row">
           <span class="profile__form-label">所属角色</span>
           <OInput :model-value="displayRole" disabled class="profile__form-input" />
+          <OButton variant="outline" size="medium" round="pill" color="primary" @click="switchRole">
+            切换为{{ isAdmin ? '普通用户' : '管理者' }}视图
+          </OButton>
         </div>
       </div>
+      <p class="profile__role-hint">此按钮仅用于不同身份的效果展示，不作为实际的角色权限变更</p>
     </section>
 
     <!-- ── 账号设置 ── -->
@@ -473,6 +477,13 @@ const confirmAddMember = () => {
   }
 
   &__form-input { flex: 1; }
+
+  &__role-hint {
+    margin: var(--o-r-gap-2) 0 0 0;
+    color: var(--o-color-info4);
+    font-size: var(--o-r-font_size-tip2);
+    line-height: var(--o-r-line_height-tip2);
+  }
 
   // ── 账号设置列表样式 ─────────────────────────────────────────────────────
   &__account-group {

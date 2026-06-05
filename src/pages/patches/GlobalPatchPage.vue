@@ -213,30 +213,33 @@ const stats = computed(() => [
 ])
 
 // 22 列（含勾选列）— 宽度基于实际内容平均长度测算（总宽 2452px）
-const columns = [
-  { label: '',                     key: 'select',              style: { width: '72px',  minWidth: '72px'  } },
-  { label: '概述(SR粒度)',        key: 'title',               style: { width: '160px', minWidth: '160px' } },
-  { label: '功能介绍(AR粒度)',    key: 'description',         style: { width: '180px', minWidth: '180px' } },
-  { label: '关联社区Issue',       key: 'communityIssue',      style: { width: '110px', minWidth: '110px' } },
-  { label: '补丁类型',            key: 'patchType',           style: { width: '100px', minWidth: '100px' } },
-  { label: '产品版本',            key: 'productVersion',      style: { width: '80px',  minWidth: '80px'  } },
-  { label: '用户态/内核态',       key: 'userKernelMode',      style: { width: '80px',  minWidth: '80px'  } },
-  { label: '补丁模块',            key: 'patchModule',         style: { width: '80px',  minWidth: '80px'  } },
-  { label: 'Commit OE',          key: 'commitOE',            style: { width: '200px', minWidth: '200px' } },
-  { label: 'PR前、后置补丁',      key: 'prRelated',           style: { width: '100px', minWidth: '100px' } },
-  { label: 'OE Merge tag',       key: 'oeMergeTag',          style: { width: '120px', minWidth: '120px' } },
-  { label: 'OE PR',              key: 'oePR',                style: { width: '200px', minWidth: '200px' } },
-  { label: 'Commit upstream',    key: 'commitUpstream',      style: { width: '140px', minWidth: '140px' } },
-  { label: 'upstream Merge tag', key: 'upstreamMergeTag',    style: { width: '130px', minWidth: '130px' } },
-  { label: '主键',                key: 'mainKey',             style: { width: '110px', minWidth: '110px' } },
-  { label: '是否合入',            key: 'merged',              style: { width: '80px',  minWidth: '80px'  } },
-  { label: '客户影响',            key: 'customerImpact',      style: { width: '120px', minWidth: '120px' } },
-  { label: '华为仓库合入状态',    key: 'hwRepoStatus',        style: { width: '100px', minWidth: '100px' } },
-  { label: '客户侧合入状态',      key: 'customerMergeStatus', style: { width: '100px', minWidth: '100px' } },
-  { label: '合入版本',            key: 'mergeVersion',        style: { width: '100px', minWidth: '100px' } },
-  { label: 'OS发布版本',          key: 'osReleaseVersion',    style: { width: '120px', minWidth: '120px' } },
-  { label: '操作',                key: 'action',              style: { width: '90px',  minWidth: '90px'  } },
-]
+const columns = computed(() => {
+  const base = [
+    { label: '', key: 'select', style: { width: '72px', minWidth: '72px' } },
+    { label: '概述(SR粒度)',        key: 'title',               style: { width: '160px', minWidth: '160px' } },
+    { label: '功能介绍(AR粒度)',    key: 'description',         style: { width: '180px', minWidth: '180px' } },
+    { label: '关联社区Issue',       key: 'communityIssue',      style: { width: '110px', minWidth: '110px' } },
+    { label: '补丁类型',            key: 'patchType',           style: { width: '100px', minWidth: '100px' } },
+    { label: '产品版本',            key: 'productVersion',      style: { width: '80px',  minWidth: '80px'  } },
+    { label: '用户态/内核态',       key: 'userKernelMode',      style: { width: '80px',  minWidth: '80px'  } },
+    { label: '补丁模块',            key: 'patchModule',         style: { width: '80px',  minWidth: '80px'  } },
+    { label: 'Commit OE',          key: 'commitOE',            style: { width: '200px', minWidth: '200px' } },
+    { label: 'PR前、后置补丁',      key: 'prRelated',           style: { width: '100px', minWidth: '100px' } },
+    { label: 'OE Merge tag',       key: 'oeMergeTag',          style: { width: '120px', minWidth: '120px' } },
+    { label: 'OE PR',              key: 'oePR',                style: { width: '200px', minWidth: '200px' } },
+    { label: 'Commit upstream',    key: 'commitUpstream',      style: { width: '140px', minWidth: '140px' } },
+    { label: 'upstream Merge tag', key: 'upstreamMergeTag',    style: { width: '130px', minWidth: '130px' } },
+    { label: '唯一标识符',                key: 'mainKey',             style: { width: '110px', minWidth: '110px' } },
+    { label: '是否合入',            key: 'merged',              style: { width: '80px',  minWidth: '80px'  } },
+    { label: '客户影响',            key: 'customerImpact',      style: { width: '120px', minWidth: '120px' } },
+    { label: '华为仓库合入状态',    key: 'hwRepoStatus',        style: { width: '100px', minWidth: '100px' } },
+    { label: '客户侧合入状态',      key: 'customerMergeStatus', style: { width: '100px', minWidth: '100px' } },
+    { label: '合入版本',            key: 'mergeVersion',        style: { width: '100px', minWidth: '100px' } },
+    { label: 'OS发布版本',          key: 'osReleaseVersion',    style: { width: '120px', minWidth: '120px' } },
+    ...(isAdmin.value ? [{ label: '操作', key: 'action', style: { width: '150px', minWidth: '150px' } }] : []),
+  ]
+  return base
+})
 
 const hwRepoLabel = (s: string) => ({ all: '全合入', partial: '部分合入', none: '未合入' }[s] ?? s)
 const hwRepoColor = (s: string) => ({ all: 'success', partial: 'warning', none: 'danger' }[s] ?? 'info')
@@ -246,22 +249,26 @@ const handleMerge = () => {
   OMessage.success(`已选 ${selectedIds.value.length} 条，合入操作已触发`)
 }
 
-const moreActions = [
-  { label: t('action.import'), value: 'import' },
-  { label: t('action.export'), value: 'export' },
-  { label: t('patch.merge'), value: 'merge' },
-  { label: t('patch.viewCases'), value: 'viewCases' },
-  { label: t('patch.batchDelete'), value: 'batchDelete', danger: true },
-]
+const handleViewCases = () => {
+  OMessage.info('查看对应用例功能开发中')
+}
 
-const handleMoreAction = (val: string | number) => {
-  switch (val) {
-    case 'import': OMessage.info('导入功能开发中'); break
-    case 'export': handleExport('all'); break
-    case 'merge': handleMerge(); break
-    case 'viewCases': OMessage.info('查看对应用例功能开发中'); break
-    case 'batchDelete': OMessage.info('批量删除功能开发中'); break
+const handleBatchDelete = () => {
+  if (!selectedIds.value.length) { OMessage.warning('请先选择补丁'); return }
+  OMessage.success(`已选 ${selectedIds.value.length} 条，批量删除操作已触发`)
+}
+
+// ─── 导入弹窗（Excel批量上传）──────────────────────────────────────────────────
+const importDialog = reactive({ visible: false })
+
+// ─── 导出（下拉：全部 / 所选）─────────────────────────────────────────────────
+const handleExport = (type: 'all' | 'selected') => {
+  if (type === 'selected' && selectedIds.value.length === 0) {
+    OMessage.warning('请先勾选要导出的补丁')
+    return
   }
+  const count = type === 'all' ? filtered.value.length : selectedIds.value.length
+  OMessage.success(`已导出 ${count} 条补丁数据`)
 }
 </script>
 
@@ -272,16 +279,18 @@ const handleMoreAction = (val: string | number) => {
       <h2 class="patch-board__title">{{ t('nav.patches') }}</h2>
     </div>
 
-    <!-- ── 筛选器
+    <!-- ── 筛选器 + 操作按钮（同一行）
          spec: OSelect variant="outline" size="medium"
          初始值 null → placeholder 显示分类名；选中后显示选中值
     ── -->
-    <div class="patch-board__filter">
-      <OSelect
+    <div class="patch-board__filter-row">
+      <div class="patch-board__filter">
+<OSelect
         v-model="filters.module"
         placeholder="补丁模块"
         variant="outline"
-       
+        searchable
+        
         size="medium"
         class="patch-board__filter-sel"
         @change="handleQuery"
@@ -300,11 +309,12 @@ const handleMoreAction = (val: string | number) => {
         @change="handleQuery"
       />
 
-      <OSelect
+<OSelect
         v-model="filters.patchType"
         placeholder="补丁类型"
         variant="outline"
-       
+        searchable
+        
         size="medium"
         class="patch-board__filter-sel"
         @change="handleQuery"
@@ -312,11 +322,12 @@ const handleMoreAction = (val: string | number) => {
         <OOption v-for="o in patchTypeOptions" :key="o.value" :value="o.value" :label="o.label" />
       </OSelect>
 
-      <OSelect
+<OSelect
         v-model="filters.version"
         placeholder="产品版本"
         variant="outline"
-       
+        searchable
+        
         size="medium"
         class="patch-board__filter-sel"
         @change="handleQuery"
@@ -324,11 +335,12 @@ const handleMoreAction = (val: string | number) => {
         <OOption v-for="o in versionOptions" :key="o.value" :value="o.value" :label="o.label" />
       </OSelect>
 
-      <OSelect
+<OSelect
         v-model="filters.mergeStatus"
         placeholder="合入状态"
         variant="outline"
-       
+        searchable
+        
         size="medium"
         class="patch-board__filter-sel"
         @change="handleQuery"
@@ -336,11 +348,12 @@ const handleMoreAction = (val: string | number) => {
         <OOption v-for="o in mergeOptions" :key="o.value" :value="o.value" :label="o.label" />
       </OSelect>
 
-      <OSelect
+<OSelect
         v-model="filters.hwRepoStatus"
         placeholder="华为仓库状态"
         variant="outline"
-       
+        searchable
+        
         size="medium"
         class="patch-board__filter-sel patch-board__filter-sel--wide"
         @change="handleQuery"
@@ -351,16 +364,42 @@ const handleMoreAction = (val: string | number) => {
       <OLink color="primary" class="patch-board__filter-clear" @click="handleClear">
         清除筛选
       </OLink>
-    </div>
+      </div>
 
-    <!-- ── 表格区域（含右上角工具栏）── -->
-    <div class="patch-board__table-wrap">
-      <div class="patch-board__table-header">
+      <!-- 操作按钮（右侧） -->
+      <div class="patch-board__actions">
         <OButton v-if="isAdmin" variant="solid" color="primary" size="medium">
           {{ t('patch.create') }}
         </OButton>
-        <ODropdown variant="outline" size="medium" :options="moreActions" @select="handleMoreAction" />
+        <OButton variant="outline" size="medium" @click="handleMerge()">
+          {{ t('patch.merge') }}
+        </OButton>
+        <OButton variant="outline" size="medium" @click="handleViewCases()">
+          {{ t('patch.viewCases') }}
+        </OButton>
+        <ODropdown v-if="isAdmin" trigger="click">
+          <OButton variant="outline" size="medium">
+            更多操作
+            <template #suffix>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0.250616 0.205025C2.94745e-05 0.455612 -0.0208527 0.848918 0.187969 1.12329L0.250616 1.19497L5.26695 6.21131C5.36737 6.31173 5.38172 6.46563 5.30999 6.58133L5.26695 6.63558L0.205025 11.6975C-0.0683418 11.9709 -0.0683418 12.4141 0.205025 12.6875C0.455612 12.938 0.848918 12.9589 1.12329 12.7501L1.19497 12.6875L6.2569 7.62553C6.88585 6.99658 6.91895 5.99741 6.35621 5.32949L6.2569 5.22136L1.24057 0.205025C0.967198 -0.0683418 0.523983 -0.0683418 0.250616 0.205025Z" fill="currentColor" fill-opacity="0.8" transform="matrix(0,1,1,0,5.55376,8.62259)"/>
+              </svg>
+            </template>
+          </OButton>
+          <template #dropdown>
+            <div class="more-menu">
+              <div class="more-menu__item" @click="importDialog.visible = true">{{ t('action.import') }}</div>
+              <div class="more-menu__item" @click="handleExport('all')">{{ t('action.exportAll') }}</div>
+              <div class="more-menu__item" @click="handleExport('selected')">{{ t('action.exportSelected') }}</div>
+              <div class="more-menu__item more-menu__item--danger" @click="handleBatchDelete()">{{ t('patch.batchDelete') }}</div>
+            </div>
+          </template>
+        </ODropdown>
       </div>
+    </div>
+
+    <!-- ── 表格区域── -->
+    <div class="patch-board__table-wrap">
 
       <OTable :columns="columns" :data="pagedRows">
         <!-- 勾选列：th_select / td_select（与 PatchTab 相同模式，不用 #header 避免覆盖列标题） -->
@@ -384,7 +423,7 @@ const handleMoreAction = (val: string | number) => {
           <span v-else class="patch-board__dash">—</span>
         </template>
         <template #td_patchType="{ row }">
-          <OTag color="danger" size="medium">{{ row.patchType }}</OTag>
+          <OTag color="normal" size="medium">{{ row.patchType }}</OTag>
         </template>
         <template #td_userKernelMode="{ row }">
           <span class="patch-board__muted">{{ row.userKernelMode ?? '—' }}</span>
@@ -404,7 +443,7 @@ const handleMoreAction = (val: string | number) => {
           </span>
         </template>
         <template #td_merged="{ row }">
-          <OTag :color="row.merged ? 'success' : 'warning'" size="medium">
+          <OTag :color="row.merged ? 'success' : 'danger'" size="medium">
             {{ row.merged ? '已合入' : '未合入' }}
           </OTag>
         </template>
@@ -419,7 +458,7 @@ const handleMoreAction = (val: string | number) => {
         <template #td_osReleaseVersion="{ row }">
           <span class="patch-board__muted">{{ row.osReleaseVersion || '—' }}</span>
         </template>
-        <template #td_action>
+        <template v-if="isAdmin" #td_action>
           <div class="patch-board__action-cell">
             <OLink color="primary" href="javascript:void(0)">编辑</OLink>
             <OLink color="danger" href="javascript:void(0)">删除</OLink>
@@ -498,7 +537,17 @@ const handleMoreAction = (val: string | number) => {
     margin-bottom: var(--o-r-gap-6);
   }
 
-  // ── 筛选器行
+  // ── 筛选器行（筛选器 + 操作按钮同一行）
+  &__filter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--o-r-gap-4);
+    margin-bottom: var(--o-r-gap-4);
+    flex-wrap: wrap;
+  }
+
+  // ── 筛选器
   // spec: OSelect size=medium(32px), variant=outline, round=pill
   // 对应参考图：胶囊形描边按钮，显示分类名 + 下箭头
   &__filter {
@@ -506,7 +555,7 @@ const handleMoreAction = (val: string | number) => {
     flex-wrap: wrap;
     align-items: center;
     gap: var(--o-r-gap-3);
-    margin-bottom: var(--o-r-gap-4);
+    flex: 1;
   }
   // OSelect medium spec 默认宽 104px，扩大以容纳中文标签
   &__filter-sel { width: 130px; }
@@ -521,12 +570,12 @@ const handleMoreAction = (val: string | number) => {
     color: var(--o-color-info3);
   }
 
-  &__table-header {
+  // ── 操作按钮（右侧）
+  &__actions {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
     gap: var(--o-r-gap-3);
-    margin-bottom: var(--o-r-gap-3);
+    flex-shrink: 0;
   }
 
   // ── 表格横向滚动
@@ -601,7 +650,7 @@ const handleMoreAction = (val: string | number) => {
   &__bottom {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     padding-top: var(--o-r-gap-4);
     border-top: 1px solid var(--o-color-control4);
   }
@@ -624,7 +673,7 @@ const handleMoreAction = (val: string | number) => {
 }
 /* 21 列的表格至少 2000px；min-width 防止 width:100% 把列压缩到视口宽度 */
 .patch-board__table-wrap table {
-  min-width: 2572px;
+  min-width: 2632px;
   table-layout: fixed;  /* 严格按 column style.width 渲染，不自动撑宽 */
   word-break: break-all; /* 超长文字在列内换行，不破坏列宽 */
 }
@@ -638,6 +687,16 @@ const handleMoreAction = (val: string | number) => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.patch-board__table-wrap td:last-child {
+  overflow: visible;
+  text-overflow: unset;
+  vertical-align: middle;
+}
+.patch-board__table-wrap th:last-child {
+  overflow: visible;
+  vertical-align: middle;
+}
+.patch-board__action-cell { display: flex; align-items: center; gap: var(--o-r-gap-3); white-space: nowrap; padding: 0 var(--o-r-gap-4); }
 /* 强制文字在列内允许换行（适用于 commit/描述等需要折行的列） */
 .patch-board__table-wrap td .patch-board__cell-desc,
 .patch-board__table-wrap td .patch-board__cell-title {

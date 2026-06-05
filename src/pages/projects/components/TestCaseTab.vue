@@ -17,10 +17,11 @@ const cases = computed<TestCase[]>(() => MOCK_TEST_CASES.filter((tc) => tc.proje
 
 // ─── 筛选器 ───────────────────────────────────────────────────────────────────
 const filters = reactive<{
-  level: string | null; testType: string | null; autoStatus: string | null; execResult: string | null
-}>({ level: null, testType: null, autoStatus: null, execResult: null })
+  testCaseModule: string | null; level: string | null; testType: string | null; autoStatus: string | null; execResult: string | null
+}>({ testCaseModule: null, level: null, testType: null, autoStatus: null, execResult: null })
 const applied = reactive({ ...filters })
 
+const moduleOptions = [{ value: 'ACC', label: 'ACC' }, { value: 'ZIP', label: 'ZIP' }, { value: 'PCIe', label: 'PCIe' }, { value: 'UACCE', label: 'UACCE' }]
 const levelOptions    = [
   { value: 'Level 1', label: 'Level 1' }, { value: 'Level 1/2', label: 'Level 1/2' },
   { value: 'Level 0/1/2/3', label: 'Level 0/1/2/3' }, { value: 'Level 2', label: 'Level 2' },
@@ -40,11 +41,12 @@ const execResultOpts = [
 const filtered = computed<TestCase[]>(() =>
   cases.value.filter((tc) => {
     const matchPatch = !props.patchIds?.length || props.patchIds.includes(tc.patchId)
+    const matchModule = !applied.testCaseModule || tc.testCaseModule === applied.testCaseModule
     const matchLevel  = !applied.level      || tc.level === applied.level
     const matchType   = !applied.testType   || tc.testType === applied.testType
     const matchAuto   = !applied.autoStatus || String(tc.isAutomated) === applied.autoStatus
     const matchResult = !applied.execResult || tc.lastExecResult === applied.execResult
-    return matchPatch && matchLevel && matchType && matchAuto && matchResult
+    return matchPatch && matchModule && matchLevel && matchType && matchAuto && matchResult
   })
 )
 
@@ -62,34 +64,49 @@ const stats = computed(() => [
 ])
 
 // 14 列（含勾选列）
-const columns = [
-  { label: '',                 key: 'select',          style: { width: '72px',  minWidth: '72px'  } },
-  { label: '名称',             key: 'name',             style: { width: '140px', minWidth: '140px' } },
-  { label: '编号',             key: 'testId',           style: { width: '140px', minWidth: '140px' } },
-  { label: '级别',             key: 'level',            style: { width: '100px', minWidth: '100px' } },
-  { label: '预置条件',         key: 'precondition',     style: { width: '200px', minWidth: '200px' } },
-  { label: '测试步骤',         key: 'testSteps',        style: { width: '200px', minWidth: '200px' } },
-  { label: '预期结果',         key: 'expectedResult',   style: { width: '180px', minWidth: '180px' } },
-  { label: '自动化脚本/路径',  key: 'automationScript', style: { width: '240px', minWidth: '240px' } },
-  { label: '最后一次执行结果', key: 'lastExecResult',   style: { width: '120px', minWidth: '120px' } },
-  { label: '特性',             key: 'feature',          style: { width: '120px', minWidth: '120px' } },
-  { label: '最后执行人',       key: 'lastExecutor',     style: { width: '100px', minWidth: '100px' } },
-  { label: '测试类型',         key: 'testType',         style: { width: '80px',  minWidth: '80px'  } },
-  { label: '自动化类型',       key: 'isAutomated',      style: { width: '90px',  minWidth: '90px'  } },
-  { label: '操作',             key: 'action',           style: { width: '90px',  minWidth: '90px'  } },
-]
+const columns = computed(() => {
+  if (!isAdmin.value) {
+    return [
+      { label: '', key: 'select', style: { width: '72px', minWidth: '72px' } },
+      { label: '名称', key: 'name', style: { width: '160px', minWidth: '160px' } },
+      { label: '用例模块', key: 'testCaseModule', style: { width: '100px', minWidth: '100px' } },
+      { label: '最后一次执行结果', key: 'lastExecResult', style: { width: '140px', minWidth: '140px' } },
+    ]
+  }
+  return [
+    { label: '', key: 'select', style: { width: '72px', minWidth: '72px' } },
+    { label: '名称', key: 'name', style: { width: '140px', minWidth: '140px' } },
+    { label: '编号', key: 'testId', style: { width: '140px', minWidth: '140px' } },
+    { label: '级别', key: 'level', style: { width: '100px', minWidth: '100px' } },
+    { label: '预置条件', key: 'precondition', style: { width: '200px', minWidth: '200px' } },
+    { label: '测试步骤', key: 'testSteps', style: { width: '200px', minWidth: '200px' } },
+    { label: '预期结果', key: 'expectedResult', style: { width: '180px', minWidth: '180px' } },
+    { label: '自动化脚本/路径', key: 'automationScript', style: { width: '240px', minWidth: '240px' } },
+    { label: '最后一次执行结果', key: 'lastExecResult', style: { width: '120px', minWidth: '120px' } },
+    { label: '用例模块', key: 'testCaseModule', style: { width: '80px', minWidth: '80px' } },
+    { label: '最后执行人', key: 'lastExecutor', style: { width: '100px', minWidth: '100px' } },
+    { label: '测试类型', key: 'testType', style: { width: '80px', minWidth: '80px' } },
+    { label: '自动化类型', key: 'isAutomated', style: { width: '90px', minWidth: '90px' } },
+    { label: '操作', key: 'action', style: { width: '90px', minWidth: '90px' } },
+  ]
+})
+
+const tableMinWidth = computed(() => columns.value.reduce((sum, c) => {
+  const w = c.style?.width ? parseInt(String(c.style.width)) : 100
+  return sum + w
+}, 0) + 'px')
 
 const execColor = (r: string) =>
-  ({ passed: 'success', fail: 'danger', block: 'warning', unavailable: 'info', pending: 'info' }[r] ?? 'info')
+  ({ passed: 'success', fail: 'danger', block: 'warning', unavailable: 'normal', pending: 'info' }[r] ?? 'info')
 const execLabel = (r: string) =>
-  ({ passed: 'Passed', fail: 'Fail', block: 'Block', unavailable: 'Unavailable', pending: '—' }[r] ?? r)
+  ({ passed: '通过', fail: '失败', block: '阻塞', unavailable: '不可用', pending: '—' }[r] ?? r)
 const typeLabel = (tp: string) =>
   ({ functional: '功能', performance: '性能', reliability: '可靠性', compatibility: '兼容性',
      security: '安全性', serviceability: '可服务性', usability: '易用性' }[tp] ?? tp)
 
 const handleQuery = () => { Object.assign(applied, filters); page.value = 1 }
 const handleClear = () => {
-  Object.assign(filters, { level: null, testType: null, autoStatus: null, execResult: null })
+  Object.assign(filters, { testCaseModule: null, level: null, testType: null, autoStatus: null, execResult: null })
   handleQuery()
 }
 
@@ -113,13 +130,13 @@ const allChecked = computed({
 interface AddCaseForm {
   name: string; testId: string; level: string
   precondition: string; testSteps: string; expectedResult: string
-  automationScript: string; feature: string; testType: string; isAutomated: string
+  automationScript: string; testCaseModule: string; testType: string; isAutomated: string
 }
 
 const EMPTY_CASE: AddCaseForm = {
   name: '', testId: '', level: '',
   precondition: '', testSteps: '', expectedResult: '',
-  automationScript: '', feature: '', testType: '', isAutomated: '',
+  automationScript: '', testCaseModule: '', testType: '', isAutomated: '',
 }
 
 const addDialog = reactive({ visible: false, form: { ...EMPTY_CASE } as AddCaseForm })
@@ -225,19 +242,23 @@ const confirmBatchDelete = () => {
     <!-- 筛选器 + 操作按钮（同一行） -->
     <div class="tc-tab__filter-row">
       <div class="tc-tab__filter">
-        <OSelect v-model="filters.level" placeholder="用例级别" variant="outline" size="medium"
+        <OSelect v-model="filters.testCaseModule" placeholder="用例模块" variant="outline" searchable size="medium"
+          class="tc-tab__sel" @change="handleQuery">
+          <OOption v-for="o in moduleOptions" :key="o.value" :value="o.value" :label="o.label" />
+        </OSelect>
+        <OSelect v-model="filters.level" placeholder="用例级别" variant="outline" searchable size="medium"
           class="tc-tab__sel" @change="handleQuery">
           <OOption v-for="o in levelOptions" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
-        <OSelect v-model="filters.testType" placeholder="测试类型" variant="outline" size="medium"
+        <OSelect v-model="filters.testType" placeholder="测试类型" variant="outline" searchable size="medium"
           class="tc-tab__sel" @change="handleQuery">
           <OOption v-for="o in testTypeOptions" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
-        <OSelect v-model="filters.autoStatus" placeholder="自动化状态" variant="outline" size="medium"
+        <OSelect v-model="filters.autoStatus" placeholder="自动化状态" variant="outline" searchable size="medium"
           class="tc-tab__sel" @change="handleQuery">
           <OOption v-for="o in autoOptions" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
-        <OSelect v-model="filters.execResult" placeholder="用例执行结果" variant="outline" size="medium"
+        <OSelect v-model="filters.execResult" placeholder="用例执行结果" variant="outline" searchable size="medium"
           class="tc-tab__sel tc-tab__sel--wide" @change="handleQuery">
           <OOption v-for="o in execResultOpts" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
@@ -245,7 +266,7 @@ const confirmBatchDelete = () => {
       </div>
 
       <div class="tc-tab__actions">
-        <OButton variant="solid" color="primary" size="medium" @click="openAddDialog">
+        <OButton v-if="isAdmin" variant="solid" color="primary" size="medium" @click="openAddDialog">
           {{ t('tc.create') }}
         </OButton>
         <OButton variant="outline" size="medium" @click="handleRun()">
@@ -254,7 +275,7 @@ const confirmBatchDelete = () => {
         <OButton variant="outline" size="medium" @click="handleToPipeline()">
           跳转至流水线
         </OButton>
-        <ODropdown trigger="click">
+        <ODropdown v-if="isAdmin" trigger="click">
           <OButton variant="outline" size="medium">
             更多操作
             <template #suffix>
@@ -278,7 +299,7 @@ const confirmBatchDelete = () => {
       </div>
     </div>
 
-    <div class="tc-tab__table-wrap">
+    <div class="tc-tab__table-wrap" :style="{ '--tc-table-min-width': tableMinWidth }">
       <OTable :columns="columns" :data="pagedRows">
         <!-- 勾选列 -->
         <template #th_select>
@@ -315,11 +336,14 @@ const confirmBatchDelete = () => {
           <span class="tc-tab__cell-plain">{{ typeLabel(row.testType) }}</span>
         </template>
         <template #td_isAutomated="{ row }">
-          <OTag :color="row.isAutomated ? 'success' : 'info'" size="medium" variant="outline">
+          <OTag :color="row.isAutomated ? 'success' : 'danger'" size="medium">
             {{ row.isAutomated ? 'TRUE' : 'FALSE' }}
           </OTag>
         </template>
-        <template #td_action>
+        <template #td_testCaseModule="{ row }">
+          <span class="tc-tab__cell-plain">{{ row.testCaseModule }}</span>
+        </template>
+        <template v-if="isAdmin" #td_action>
           <div class="tc-tab__action-cell">
             <OLink color="primary" href="javascript:void(0)">{{ t('action.edit') }}</OLink>
             <OLink color="danger" href="javascript:void(0)">{{ t('action.delete') }}</OLink>
@@ -403,14 +427,16 @@ const confirmBatchDelete = () => {
           </OSelect>
         </div>
         <div class="tc-form__field">
-          <label class="tc-form__label"><span class="tc-form__required">*</span>特性</label>
-          <OInput v-model="addDialog.form.feature" placeholder="例：PCIe DPC中断" clearable />
+          <label class="tc-form__label"><span class="tc-form__required">*</span>用例模块</label>
+          <OSelect v-model="addDialog.form.testCaseModule" placeholder="请选择">
+            <OOption v-for="o in moduleOptions" :key="o.value" :value="o.value" :label="o.label" />
+          </OSelect>
         </div>
         <div class="tc-form__field">
           <label class="tc-form__label"><span class="tc-form__required">*</span>自动化类型</label>
           <OSelect v-model="addDialog.form.isAutomated" placeholder="请选择">
-            <OOption value="true" label="TRUE（已自动化）" />
-            <OOption value="false" label="FALSE（未自动化）" />
+            <OOption value="true" label="TRUE" />
+            <OOption value="false" label="FALSE" />
           </OSelect>
         </div>
         <div class="tc-form__field tc-form__field--full">
@@ -653,7 +679,7 @@ const confirmBatchDelete = () => {
   -webkit-overflow-scrolling: touch;
 }
 .tc-tab__table-wrap table {
-  min-width: 1952px;  /* 1880 + 72(checkbox列) */
+  min-width: var(--tc-table-min-width);
   table-layout: fixed;
   word-break: break-all;
 }
@@ -668,9 +694,7 @@ const confirmBatchDelete = () => {
 }
 .tc-tab__table-wrap th:first-child,
 .tc-tab__table-wrap td:first-child {
-  overflow: visible;
-  text-align: center;
-  padding-left: 16px;
+  text-align: left;
 }
 .tc-tab__table-wrap td .tc-tab__cell-text,
 .tc-tab__table-wrap td .tc-tab__cell-script {

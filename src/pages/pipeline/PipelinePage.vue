@@ -106,12 +106,18 @@ const executeForm = reactive({
 })
 
 const caseFilters = reactive({
+  testCaseModule: '',
   level: '',
   testType: '',
   autoStatus: '',
   execResult: '',
 })
 
+const moduleOptions = [
+  { value: '', label: '用例模块' },
+  { value: 'ACC', label: 'ACC' }, { value: 'ZIP', label: 'ZIP' },
+  { value: 'PCIe', label: 'PCIe' }, { value: 'UACCE', label: 'UACCE' },
+]
 const levelOptions = [
   { value: '', label: '用例级别' },
   { value: 'Level 1', label: 'Level 1' }, { value: 'Level 1/2', label: 'Level 1/2' },
@@ -141,7 +147,7 @@ const handleTrigger = () => {
 }
 
 const handleClearCaseFilter = () => {
-  Object.assign(caseFilters, { level: '', testType: '', autoStatus: '', execResult: '' })
+  Object.assign(caseFilters, { testCaseModule: '', level: '', testType: '', autoStatus: '', execResult: '' })
 }
 </script>
 
@@ -169,10 +175,10 @@ const handleClearCaseFilter = () => {
 
     <!-- Filter -->
     <div class="pipeline-page__filter">
-      <OSelect v-model="filters.projectId" :placeholder="t('filter.project')" class="pipeline-page__field">
+      <OSelect v-model="filters.projectId" :placeholder="t('filter.project')" searchable class="pipeline-page__field">
         <OOption v-for="opt in projectOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
       </OSelect>
-      <OSelect v-model="filters.status" :placeholder="t('filter.status')" class="pipeline-page__field">
+      <OSelect v-model="filters.status" :placeholder="t('filter.status')" searchable class="pipeline-page__field">
         <OOption v-for="opt in statusOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
       </OSelect>
       <div class="pipeline-page__btns">
@@ -181,8 +187,8 @@ const handleClearCaseFilter = () => {
       </div>
     </div>
 
-    <!-- 执行配置区 -->
-    <div v-if="isAdmin" class="pipeline-page__execute">
+    <!-- 执行配置区（普通用户只读） -->
+    <div class="pipeline-page__execute">
       <div class="pipeline-page__section">
         <span class="pipeline-page__section-bar"></span>
         <span class="pipeline-page__section-title">构建区</span>
@@ -207,16 +213,19 @@ const handleClearCaseFilter = () => {
         <span class="pipeline-page__section-count">已选 {{ selectedCaseIds.length }} / 7 个用例</span>
       </div>
       <div class="pipeline-page__case-filter">
-        <OSelect v-model="caseFilters.level" placeholder="用例级别" variant="outline" size="medium" class="pipeline-page__case-sel">
+        <OSelect v-model="caseFilters.testCaseModule" placeholder="用例模块" variant="outline" searchable size="medium" class="pipeline-page__case-sel">
+          <OOption v-for="o in moduleOptions" :key="o.value" :value="o.value" :label="o.label" />
+        </OSelect>
+        <OSelect v-model="caseFilters.level" placeholder="用例级别" variant="outline" searchable size="medium" class="pipeline-page__case-sel">
           <OOption v-for="o in levelOptions" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
-        <OSelect v-model="caseFilters.testType" placeholder="测试类型" variant="outline" size="medium" class="pipeline-page__case-sel">
+        <OSelect v-model="caseFilters.testType" placeholder="测试类型" variant="outline" searchable size="medium" class="pipeline-page__case-sel">
           <OOption v-for="o in testTypeOptions" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
-        <OSelect v-model="caseFilters.autoStatus" placeholder="自动化类型" variant="outline" size="medium" class="pipeline-page__case-sel">
+        <OSelect v-model="caseFilters.autoStatus" placeholder="自动化类型" variant="outline" searchable size="medium" class="pipeline-page__case-sel">
           <OOption v-for="o in autoOptions" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
-        <OSelect v-model="caseFilters.execResult" placeholder="用例执行结果" variant="outline" size="medium" class="pipeline-page__case-sel">
+        <OSelect v-model="caseFilters.execResult" placeholder="用例执行结果" variant="outline" searchable size="medium" class="pipeline-page__case-sel">
           <OOption v-for="o in execResultOpts" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
         <OButton variant="text" color="primary" size="medium" @click="handleClearCaseFilter">清除筛选</OButton>

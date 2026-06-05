@@ -22,7 +22,7 @@ export interface Project {
   name: string
   description: string
   language: string
-  status: 'active' | 'archived' | 'planning'
+  status: '开发中' | '测试中' | '已完成'
   ownerId: string
   memberIds: string[]
   patchCount: number
@@ -100,7 +100,7 @@ export interface TestCase {
   suite: string
   // Extended fields
   lastExecResult: LastExecResult  // 最后一次执行结果
-  feature: string                  // 特性
+  testCaseModule: string            // 用例模块（与补丁看板 patchModule 拉通）
   lastExecutor: string             // 最后执行人
   testType: TestType               // 测试类型
 }
@@ -117,6 +117,9 @@ export interface PipelineTask {
   endedAt: string | null
   duration: string | null
   executor: string
+  buildLink?: string
+  isoLink?: string
+  testLink?: string
 }
 
 // ─── Mock users ──────────────────────────────────────────────────────────────
@@ -138,7 +141,7 @@ export const MOCK_PROJECTS: Project[] = [
   {
     id: 'p1', projectId: 'PRJ-001',
     name: 'Kernel-5.10', description: '内核5.10主线维护',
-    language: 'C', status: 'active', ownerId: 'u1',
+    language: 'C', status: '开发中', ownerId: 'u1',
     memberIds: ['u1', 'u2'], patchCount: 18, testCount: 33, passRate: 94,
     createdAt: '2025-01-15', lastUpdated: '2026-05-30',
     kernelVersion: '5.10', osVersion: 'openEuler 24.03 LTS',
@@ -153,7 +156,7 @@ export const MOCK_PROJECTS: Project[] = [
   {
     id: 'p2', projectId: 'PRJ-002',
     name: 'Network-Stack-v2', description: '下一代网络协议栈重构，支持QUIC/HTTP3',
-    language: 'Go', status: 'active', ownerId: 'u1',
+    language: 'Go', status: '测试中', ownerId: 'u1',
     memberIds: ['u1'], patchCount: 6, testCount: 12, passRate: 87,
     createdAt: '2025-03-20', lastUpdated: '2026-05-28',
     kernelVersion: '6.6', osVersion: 'openEuler 24.03 LTS',
@@ -168,7 +171,7 @@ export const MOCK_PROJECTS: Project[] = [
   {
     id: 'p3', projectId: 'PRJ-003',
     name: 'Security-Hardening', description: '安全加固补丁集，修复CVE合规漏洞',
-    language: 'C++', status: 'active', ownerId: 'u1',
+    language: 'C++', status: '已完成', ownerId: 'u1',
     memberIds: ['u1', 'u2'], patchCount: 24, testCount: 88, passRate: 98,
     createdAt: '2024-11-05', lastUpdated: '2026-06-01',
     kernelVersion: '5.10', osVersion: 'openEuler 22.03 LTS',
@@ -294,7 +297,7 @@ export const MOCK_TEST_CASES: TestCase[] = [
     testSteps: '1、lspci查询RP DPC cap MSI vector配置\nlspci -s 00:00.0 -vvv| grep DpcCap\n2、查询DPC中断是否注册成功\ncat /proc/interrupts | grep dpc',
     expectedResult: '中断注册成功，中断有增加',
     automationScript: 'D06:/test_cases/pcie/DPC/test_function_dpc.py::TestCase::test_dpc',
-    lastExecResult: 'passed', feature: 'PCIe DPC中断', lastExecutor: 'xws0058756', testType: 'functional',
+    lastExecResult: 'passed', testCaseModule: 'PCIe', lastExecutor: 'xws0058756', testType: 'functional',
   },
   {
     id: 'tc2', projectId: 'p1', patchId: 'pa5',
@@ -305,7 +308,7 @@ export const MOCK_TEST_CASES: TestCase[] = [
     testSteps: '1、运行ZIP压缩基准测试脚本\n2、记录压缩吞吐率和延迟数据',
     expectedResult: '压缩速率≥预期基线，延迟在合理范围内',
     automationScript: 'D06:/test_cases/zip/perf/test_zip_bench.py::TestCase::test_bench',
-    lastExecResult: 'passed', feature: 'ZIP压缩性能', lastExecutor: 'xws0058756', testType: 'performance',
+    lastExecResult: 'passed', testCaseModule: 'ZIP', lastExecutor: 'xws0058756', testType: 'performance',
   },
   {
     id: 'tc3', projectId: 'p1', patchId: 'pa1',
@@ -316,7 +319,7 @@ export const MOCK_TEST_CASES: TestCase[] = [
     testSteps: '1、检查UACCE设备节点是否存在\n2、执行UACCE注册验证脚本',
     expectedResult: 'UACCE设备注册成功，设备节点正常',
     automationScript: 'D06:/test_cases/uacce/test_uacce_func.py::TestCase::test_register',
-    lastExecResult: 'passed', feature: 'UACCE设备管理', lastExecutor: 'lkf0012345', testType: 'functional',
+    lastExecResult: 'passed', testCaseModule: 'UACCE', lastExecutor: 'lkf0012345', testType: 'functional',
   },
   {
     id: 'tc4', projectId: 'p1', patchId: 'pa2',
@@ -328,7 +331,7 @@ export const MOCK_TEST_CASES: TestCase[] = [
     testSteps: '1、配置UACCE模式为1\n2、执行hash-agg算法测试',
     expectedResult: 'hash-agg算法在UACCE mode=1下正常工作',
     automationScript: 'D06:/test_cases/zip/func/test_hashagg.py::TestCase::test_mode1',
-    lastExecResult: 'fail', feature: 'ZIP hash-agg', lastExecutor: 'xws0058756', testType: 'functional',
+    lastExecResult: 'fail', testCaseModule: 'ZIP', lastExecutor: 'xws0058756', testType: 'functional',
   },
   {
     id: 'tc5', projectId: 'p1', patchId: 'pa3',
@@ -339,7 +342,7 @@ export const MOCK_TEST_CASES: TestCase[] = [
     testSteps: '1、循环加载/卸载驱动100次\n2、检查每次加载后设备状态',
     expectedResult: '驱动100次加载/卸载无异常，设备状态正常',
     automationScript: 'D06:/test_cases/acc/reliability/test_drv_reload.py::TestCase::test_reload',
-    lastExecResult: 'passed', feature: 'ACC驱动稳定性', lastExecutor: 'lkf0012345', testType: 'reliability',
+    lastExecResult: 'passed', testCaseModule: 'ACC', lastExecutor: 'lkf0012345', testType: 'reliability',
   },
   {
     id: 'tc6', projectId: 'p1', patchId: 'pa4',
@@ -350,7 +353,7 @@ export const MOCK_TEST_CASES: TestCase[] = [
     testSteps: '1、在服务器A上安装PCIe卡\n2、执行基础功能验证\n3、记录兼容性结果',
     expectedResult: 'PCIe卡在服务器A上功能正常，无兼容性问题',
     automationScript: '—',
-    lastExecResult: 'passed', feature: 'PCIe硬件兼容', lastExecutor: 'zmd9876543', testType: 'compatibility',
+    lastExecResult: 'passed', testCaseModule: 'PCIe', lastExecutor: 'zmd9876543', testType: 'compatibility',
   },
   {
     id: 'tc7', projectId: 'p1', patchId: 'pa1',
@@ -361,7 +364,18 @@ export const MOCK_TEST_CASES: TestCase[] = [
     testSteps: '1、尝试越界内存访问\n2、验证内核保护机制响应',
     expectedResult: '越界访问被拦截，无内核崩溃',
     automationScript: 'D06:/test_cases/security/test_boundary.py::TestCase::test_oob',
-    lastExecResult: 'unavailable', feature: '内存安全', lastExecutor: '—', testType: 'security',
+    lastExecResult: 'unavailable', testCaseModule: 'ACC', lastExecutor: '—', testType: 'security',
+  },
+  {
+    id: 'tc7b', projectId: 'p1', patchId: 'pa1',
+    name: 'PCIe设备热插拔阻塞测试', testId: 'PCIE_HOT_002',
+    level: 'Level 2', suite: 'PCIe', status: 'block',
+    duration: 0, runAt: '2026-05-28 09:30', authorId: 'u3', isAutomated: true,
+    precondition: 'PCIe热插拔环境就绪，驱动加载阻塞',
+    testSteps: '1、执行PCIe设备热插拔\n2、观察内核响应状态',
+    expectedResult: '热插拔过程无panic，设备状态正常',
+    automationScript: 'D06:/test_cases/pcie/test_hotplug_block.py::TestCase::test_hotplug',
+    lastExecResult: 'block', testCaseModule: 'PCIe', lastExecutor: 'zmd9876543', testType: 'functional',
   },
   {
     id: 'tc8', projectId: 'p3', patchId: 'pa6',
@@ -372,7 +386,7 @@ export const MOCK_TEST_CASES: TestCase[] = [
     testSteps: '1、执行UACCE注册场景边界测试\n2、验证空指针保护',
     expectedResult: '空指针场景不触发panic，异常处理正确',
     automationScript: 'D06:/test_cases/security/test_uacce_sec.py::TestCase::test_null_ptr',
-    lastExecResult: 'passed', feature: 'UACCE安全', lastExecutor: 'zmd9876543', testType: 'security',
+    lastExecResult: 'passed', testCaseModule: 'UACCE', lastExecutor: 'zmd9876543', testType: 'security',
   },
 ]
 
@@ -385,6 +399,9 @@ export const MOCK_PIPELINE_TASKS: PipelineTask[] = [
     testStatus: 'success', pipelineStatus: 'success',
     startedAt: '2026.5.22 18:29', endedAt: '2026.5.22 19:29',
     duration: '1:00', executor: 'xws0058756',
+    buildLink: 'https://build.openeuler.org/123456789',
+    isoLink: 'https://iso.openeuler.org/123456789',
+    testLink: 'https://test.openeuler.org/123456789',
   },
   {
     id: 'pt2', projectId: 'p1', taskId: '987654321',
@@ -399,5 +416,7 @@ export const MOCK_PIPELINE_TASKS: PipelineTask[] = [
     testStatus: 'failed', pipelineStatus: 'failed',
     startedAt: '2026.6.01 10:00', endedAt: '2026.6.01 11:30',
     duration: '1:30', executor: 'xws0058756',
+    buildLink: 'https://build.openeuler.org/112233445',
+    isoLink: 'https://iso.openeuler.org/112233445',
   },
 ]

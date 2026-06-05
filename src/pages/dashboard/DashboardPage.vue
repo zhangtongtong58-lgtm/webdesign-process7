@@ -168,7 +168,7 @@ const pipelineStatusColor = (status: string) => {
           <div class="dashboard__project-header">
             <span class="dashboard__project-name">{{ proj.name }}</span>
             <OTag
-              :color="proj.status === 'active' ? 'success' : proj.status === 'planning' ? 'warning' : 'info'"
+              :color="proj.status === '开发中' ? 'primary' : proj.status === '测试中' ? 'warning' : proj.status === '已完成' ? 'success' : 'normal'"
               size="medium"
             >
               {{ proj.status }}
