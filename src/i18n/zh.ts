@@ -98,8 +98,6 @@ const zh: Record<string, string> = {
   // pipeline
   'pipeline.runAll': '一键执行流水线',
   'pipeline.colTaskId': '任务ID',
-  'pipeline.colBuild': '包构建状态',
-  'pipeline.colIso': 'ISO构建状态',
   'pipeline.colTest': '测试结果',
   'pipeline.colStatus': '流水线状态',
   'pipeline.colStart': '开始时间',

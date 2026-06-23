@@ -244,15 +244,6 @@ const columns = computed(() => {
 const hwRepoLabel = (s: string) => ({ all: '全合入', partial: '部分合入', none: '未合入' }[s] ?? s)
 const hwRepoColor = (s: string) => ({ all: 'success', partial: 'warning', none: 'danger' }[s] ?? 'info')
 
-const handleMerge = () => {
-  if (!selectedIds.value.length) { OMessage.warning('请先选择补丁'); return }
-  OMessage.success(`已选 ${selectedIds.value.length} 条，合入操作已触发`)
-}
-
-const handleViewCases = () => {
-  OMessage.info('查看对应用例功能开发中')
-}
-
 const handleBatchDelete = () => {
   if (!selectedIds.value.length) { OMessage.warning('请先选择补丁'); return }
   OMessage.success(`已选 ${selectedIds.value.length} 条，批量删除操作已触发`)
@@ -370,12 +361,6 @@ const handleExport = (type: 'all' | 'selected') => {
       <div class="patch-board__actions">
         <OButton v-if="isAdmin" variant="solid" color="primary" size="medium">
           {{ t('patch.create') }}
-        </OButton>
-        <OButton variant="outline" size="medium" @click="handleMerge()">
-          {{ t('patch.merge') }}
-        </OButton>
-        <OButton variant="outline" size="medium" @click="handleViewCases()">
-          {{ t('patch.viewCases') }}
         </OButton>
         <ODropdown v-if="isAdmin" trigger="click">
           <OButton variant="outline" size="medium">

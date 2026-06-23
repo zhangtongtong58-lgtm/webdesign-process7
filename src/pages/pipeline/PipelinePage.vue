@@ -140,6 +140,10 @@ const allCasesSelected = computed(() => selectedCaseIds.value.length > 0)
 const handleTrigger = () => {
   if (executeForm.projectId) {
     const project = MOCK_PROJECTS.find((p) => p.id === executeForm.projectId)
+    if (!project?.pipelineId.trim() || !project?.pipelineName.trim()) {
+      OMessage.warning('流水线ID和流水线名称均须填写方可启动流水线，请先在项目基本信息中补充')
+      return
+    }
     OMessage.success(`已触发流水线执行：${project?.name}`)
   } else {
     OMessage.warning('请先配置执行参数')

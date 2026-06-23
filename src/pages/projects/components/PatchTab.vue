@@ -9,7 +9,7 @@ import { useAuth } from '../../../composables/useAuth'
 import { MOCK_PATCHES } from '../../../mock/data'
 import { t } from '../../../i18n/zh'
 
-const props = defineProps<{ projectId: string }>()
+const props = defineProps<{ projectId: string; targetRepo: string }>()
 const { isAdmin } = useAuth()
 
 const patches = computed(() => MOCK_PATCHES.filter((p) => p.projectId === props.projectId))
@@ -28,8 +28,8 @@ const applied = reactive({ ...filters })
 const moduleOptions    = [{ value: 'ACC', label: 'ACC' }, { value: 'ZIP', label: 'ZIP' }, { value: 'PCIe', label: 'PCIe' }]
 const patchTypeOptions = [{ value: 'Bug', label: 'Bug' }, { value: 'Feature', label: 'Feature' }]
 const versionOptions   = [{ value: '950', label: '950' }, { value: '950Pro', label: '950Pro' }]
-const mergeOptions     = [{ value: 'true', label: '已合入' }, { value: 'false', label: '未合入' }]
-const hwRepoOptions    = [{ value: 'all', label: '全合入' }, { value: 'partial', label: '部分合入' }, { value: 'none', label: '未合入' }]
+const mergeOptions     = [{ value: 'true', label: '是' }, { value: 'false', label: '否' }]
+const hwRepoOptions    = [{ value: 'merged', label: '已合入' }, { value: 'unmerged', label: '未合入' }]
 
 const filtered = computed(() =>
   patches.value.filter((p) => {
@@ -63,16 +63,17 @@ const columns = computed(() => {
     { label: '用户态/内核态',       key: 'userKernel',          style: { width: '80px',  minWidth: '80px'  } },
     { label: '补丁模块',            key: 'patchModule',         style: { width: '80px',  minWidth: '80px'  } },
     { label: 'Commit OE',          key: 'commitOE',            style: { width: '200px', minWidth: '200px' } },
+    { label: 'Commit ID OE',       key: 'commitIdOE',          style: { width: '140px', minWidth: '140px' } },
     { label: 'PR前、后置补丁',      key: 'prRelated',           style: { width: '100px', minWidth: '100px' } },
     { label: 'OE Merge tag',       key: 'oeMergeTag',          style: { width: '120px', minWidth: '120px' } },
     { label: 'OE PR',              key: 'oePR',               style: { width: '200px', minWidth: '200px' } },
     { label: 'Commit upstream',    key: 'commitUpstream',      style: { width: '140px', minWidth: '140px' } },
     { label: 'upstream Merge tag', key: 'upstreamMergeTag',    style: { width: '130px', minWidth: '130px' } },
     { label: '唯一标识符',                key: 'mainKey',             style: { width: '110px', minWidth: '110px' } },
-    { label: '是否合入',            key: 'merged',              style: { width: '80px',  minWidth: '80px'  } },
+    { label: '是否需要合入',        key: 'merged',              style: { width: '80px',  minWidth: '80px'  } },
     { label: '客户影响',            key: 'customerImpact',      style: { width: '120px', minWidth: '120px' } },
-    { label: '华为仓库合入状态',    key: 'hwRepoStatus',        style: { width: '100px', minWidth: '100px' } },
-    { label: '客户侧合入状态',      key: 'customerMergeStatus', style: { width: '100px', minWidth: '100px' } },
+    { label: '华为合入状态',        key: 'hwRepoStatus',        style: { width: '100px', minWidth: '100px' } },
+    { label: '客户合入状态',        key: 'customerMergeStatus', style: { width: '100px', minWidth: '100px' } },
     { label: '合入版本',            key: 'mergeVersion',        style: { width: '100px', minWidth: '100px' } },
     { label: 'OS发布版本',          key: 'osReleaseVersion',    style: { width: '120px', minWidth: '120px' } },
     ...(isAdmin.value ? [{ label: '操作', key: 'action', style: { width: '150px', minWidth: '150px' } }] : []),
@@ -88,8 +89,10 @@ const stats = computed(() => [
   { id: 'selected', label: t('patch.selected'), value: 0, mod: 'danger' },
 ])
 
-const hwRepoLabel = (s: string) => ({ all: '全合入', partial: '部分合入', none: '未合入' }[s] ?? s)
-const hwRepoColor = (s: string) => ({ all: 'success', partial: 'warning', none: 'danger' }[s] ?? 'info')
+const hwRepoLabel = (s: string) => ({ merged: '已合入', unmerged: '未合入' }[s] ?? s)
+const hwRepoColor = (s: string) => ({ merged: 'success', unmerged: 'danger' }[s] ?? 'info')
+const custMergeLabel = (s: string) => ({ '已合入': '已合入', '未合入': '未合入' }[s] ?? s)
+const custMergeColor = (s: string) => ({ '已合入': 'success', '未合入': 'danger' }[s] ?? 'info')
 
 const handleQuery = () => { Object.assign(applied, filters); page.value = 1 }
 const handleClear = () => {
@@ -193,7 +196,7 @@ const confirmBatchDelete = () => {
 interface AddPatchForm {
   title: string; description: string; communityIssue: string
   patchType: string; productVersion: string; userKernel: string; patchModule: string
-  commitOE: string; prRelated: string; oeMergeTag: string; oePR: string
+  commitOE: string; commitIdOE: string; prRelated: string; oeMergeTag: string; oePR: string
   commitUpstream: string; upstreamMergeTag: string
   merged: string; customerImpact: string; hwRepoStatus: string
   customerMergeStatus: string; mergeVersion: string; osReleaseVersion: string
@@ -202,7 +205,7 @@ interface AddPatchForm {
 const EMPTY_FORM: AddPatchForm = {
   title: '', description: '', communityIssue: '',
   patchType: '', productVersion: '', userKernel: '', patchModule: '',
-  commitOE: '', prRelated: '', oeMergeTag: '', oePR: '',
+  commitOE: '', commitIdOE: '', prRelated: '', oeMergeTag: '', oePR: '',
   commitUpstream: '', upstreamMergeTag: '',
   merged: '', customerImpact: '', hwRepoStatus: '',
   customerMergeStatus: '', mergeVersion: '', osReleaseVersion: '',
@@ -256,6 +259,13 @@ const handleExport = (type: 'all' | 'selected') => {
 
 <template>
   <div class="patch-tab">
+    <!-- 目标仓库地址（仅补丁看板显示） -->
+    <div class="patch-tab__repo-row">
+      <span class="patch-tab__repo-label">目标仓库</span>
+      <OLink v-if="props.targetRepo" color="primary" :href="props.targetRepo" target="_blank" class="patch-tab__repo-link">{{ props.targetRepo }}</OLink>
+      <span v-else class="patch-tab__muted">—</span>
+    </div>
+
     <!-- 筛选器 + 操作按钮（同一行） -->
     <div class="patch-tab__filter-row">
       <div class="patch-tab__filter">
@@ -271,11 +281,11 @@ const handleExport = (type: 'all' | 'selected') => {
           class="patch-tab__sel" @change="handleQuery">
           <OOption v-for="o in versionOptions" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
-        <OSelect v-model="filters.mergeStatus" placeholder="合入状态" variant="outline" searchable size="medium"
+        <OSelect v-model="filters.mergeStatus" placeholder="是否需要合入" variant="outline" searchable size="medium"
           class="patch-tab__sel" @change="handleQuery">
           <OOption v-for="o in mergeOptions" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
-        <OSelect v-model="filters.hwRepoStatus" placeholder="华为仓库状态" variant="outline" searchable size="medium"
+        <OSelect v-model="filters.hwRepoStatus" placeholder="华为合入状态" variant="outline" searchable size="medium"
           class="patch-tab__sel patch-tab__sel--wide" @change="handleQuery">
           <OOption v-for="o in hwRepoOptions" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
@@ -347,14 +357,23 @@ const handleExport = (type: 'all' | 'selected') => {
           </OLink>
           <span v-else class="patch-tab__muted">—</span>
         </template>
+        <template #td_commitOE="{ row }">
+          <span class="patch-tab__cell-text">{{ row.commitOE }}</span>
+        </template>
+        <template #td_commitIdOE="{ row }">
+          <span class="patch-tab__cell-id">{{ row.commitIdOE ? row.commitIdOE.slice(0, 12) : '—' }}</span>
+        </template>
         <template #td_commitUpstream="{ row }">
           <span class="patch-tab__cell-id">{{ row.commitUpstream ? row.commitUpstream.slice(0, 12) : '—' }}</span>
         </template>
         <template #td_merged="{ row }">
-          <OTag :color="row.merged ? 'success' : 'danger'" size="medium">{{ row.merged ? '已合入' : '未合入' }}</OTag>
+          <OTag :color="row.merged ? 'success' : 'danger'" size="medium">{{ row.merged ? '是' : '否' }}</OTag>
         </template>
         <template #td_hwRepoStatus="{ row }">
           <OTag :color="hwRepoColor(row.hwRepoStatus)" size="medium">{{ hwRepoLabel(row.hwRepoStatus) }}</OTag>
+        </template>
+        <template #td_customerMergeStatus="{ row }">
+          <OTag :color="custMergeColor(row.customerMergeStatus)" size="medium">{{ custMergeLabel(row.customerMergeStatus) }}</OTag>
         </template>
         <template #td_mergeVersion="{ row }">
           <span class="patch-tab__muted">{{ row.mergeVersion || '—' }}</span>
@@ -483,6 +502,10 @@ const handleExport = (type: 'all' | 'selected') => {
           <OInput v-model="addDialog.form.commitOE" placeholder="例：crypto: hisilicon - enable error reporting again" clearable />
         </div>
         <div class="patch-form__field">
+          <label class="patch-form__label">Commit ID OE</label>
+          <OInput v-model="addDialog.form.commitIdOE" placeholder="例：5f3a1b2c7d8e9f0a" clearable />
+        </div>
+        <div class="patch-form__field">
           <label class="patch-form__label"><span class="patch-form__required">*</span>OE Merge tag</label>
           <OInput v-model="addDialog.form.oeMergeTag" placeholder="例：6.6.0-94.0.0" clearable />
         </div>
@@ -512,18 +535,17 @@ const handleExport = (type: 'all' | 'selected') => {
       </div>
       <div class="patch-form__grid">
         <div class="patch-form__field">
-          <label class="patch-form__label">是否合入</label>
+          <label class="patch-form__label">是否需要合入</label>
           <OSelect v-model="addDialog.form.merged" placeholder="请选择">
-            <OOption :value="true" label="已合入" />
-            <OOption :value="false" label="未合入" />
+            <OOption value="true" label="是" />
+            <OOption value="false" label="否" />
           </OSelect>
         </div>
         <div class="patch-form__field">
-          <label class="patch-form__label">华为仓库合入状态</label>
+          <label class="patch-form__label">华为合入状态</label>
           <OSelect v-model="addDialog.form.hwRepoStatus" placeholder="请选择">
-            <OOption value="all" label="全合入" />
-            <OOption value="partial" label="部分合入" />
-            <OOption value="none" label="未合入" />
+            <OOption value="merged" label="已合入" />
+            <OOption value="unmerged" label="未合入" />
           </OSelect>
         </div>
         <div class="patch-form__field patch-form__field--full">
@@ -599,6 +621,23 @@ const handleExport = (type: 'all' | 'selected') => {
 
 .patch-tab {
   padding-top: var(--o-r-gap-5);
+  &__repo-row {
+    display: flex;
+    align-items: center;
+    gap: var(--o-r-gap-3);
+    margin-bottom: var(--o-r-gap-5);
+  }
+  &__repo-label {
+    color: var(--o-color-info2);
+    font-size: var(--o-r-font_size-tip1);
+    line-height: var(--o-r-line_height-tip1);
+    flex-shrink: 0;
+  }
+  &__repo-link {
+    font-size: var(--o-r-font_size-tip1);
+    line-height: var(--o-r-line_height-tip1);
+    word-break: break-all;
+  }
   &__stats { display: flex; gap: var(--o-r-grid-column-gutter); margin-bottom: var(--o-r-gap-6); }
   &__sel { width: 130px; }
   &__sel--wide { width: 150px; }
@@ -770,7 +809,7 @@ const handleExport = (type: 'all' | 'selected') => {
   -webkit-overflow-scrolling: touch;
 }
 .patch-tab__table-wrap table {
-  min-width: 2632px;
+  min-width: 2772px;
   table-layout: fixed;
   word-break: break-all;
 }

@@ -17,8 +17,8 @@ const cases = computed<TestCase[]>(() => MOCK_TEST_CASES.filter((tc) => tc.proje
 
 // ─── 筛选器 ───────────────────────────────────────────────────────────────────
 const filters = reactive<{
-  testCaseModule: string | null; level: string | null; testType: string | null; autoStatus: string | null; execResult: string | null
-}>({ testCaseModule: null, level: null, testType: null, autoStatus: null, execResult: null })
+  testCaseModule: string | null; level: string | null; testType: string | null; autoStatus: string | null; execResult: string | null; uniqueId: string | null
+}>({ testCaseModule: null, level: null, testType: null, autoStatus: null, execResult: null, uniqueId: null })
 const applied = reactive({ ...filters })
 
 const moduleOptions = [{ value: 'ACC', label: 'ACC' }, { value: 'ZIP', label: 'ZIP' }, { value: 'PCIe', label: 'PCIe' }, { value: 'UACCE', label: 'UACCE' }]
@@ -37,6 +37,9 @@ const execResultOpts = [
   { value: 'passed', label: 'Passed' }, { value: 'fail', label: 'Fail' },
   { value: 'block', label: 'Block' }, { value: 'unavailable', label: 'Unavailable' },
 ]
+const uniqueIdOptions = computed(() =>
+  [...new Set(cases.value.map(tc => tc.testId))].sort().map(id => ({ value: id, label: id }))
+)
 
 const filtered = computed<TestCase[]>(() =>
   cases.value.filter((tc) => {
@@ -46,7 +49,8 @@ const filtered = computed<TestCase[]>(() =>
     const matchType   = !applied.testType   || tc.testType === applied.testType
     const matchAuto   = !applied.autoStatus || String(tc.isAutomated) === applied.autoStatus
     const matchResult = !applied.execResult || tc.lastExecResult === applied.execResult
-    return matchPatch && matchModule && matchLevel && matchType && matchAuto && matchResult
+    const matchUid    = !applied.uniqueId   || tc.testId === applied.uniqueId
+    return matchPatch && matchModule && matchLevel && matchType && matchAuto && matchResult && matchUid
   })
 )
 
@@ -106,7 +110,7 @@ const typeLabel = (tp: string) =>
 
 const handleQuery = () => { Object.assign(applied, filters); page.value = 1 }
 const handleClear = () => {
-  Object.assign(filters, { testCaseModule: null, level: null, testType: null, autoStatus: null, execResult: null })
+  Object.assign(filters, { testCaseModule: null, level: null, testType: null, autoStatus: null, execResult: null, uniqueId: null })
   handleQuery()
 }
 
@@ -180,9 +184,6 @@ const handleExport = (type: 'all' | 'selected') => {
   OMessage.success(`已导出 ${count} 条用例数据`)
 }
 
-// ─── emit：通知父组件跳转流水线并传入用例 ID ─────────────────────────────────
-const emit = defineEmits<{ runPipeline: [caseIds: string[]] }>()
-
 // ─── 执行测试：奇次成功/偶次失败（结果面板展示）────────────────────────────────
 const execClickCount = ref(0)
 const execResult = reactive({
@@ -204,12 +205,6 @@ const handleRun = () => {
     id: c.testId,
     status: isSuccess ? 'pass' : (Math.random() > 0.4 ? 'fail' : 'pass'),
   }))
-}
-
-// ─── 跳转至流水线（携带选中用例 ID）────────────────────────────────────────────
-const handleToPipeline = () => {
-  if (!selectedIds.value.length) { OMessage.warning('请先勾选要执行的用例'); return }
-  emit('runPipeline', [...selectedIds.value])
 }
 
 // ─── 批量删除 ─────────────────────────────────────────────────────────────────
@@ -262,6 +257,10 @@ const confirmBatchDelete = () => {
           class="tc-tab__sel tc-tab__sel--wide" @change="handleQuery">
           <OOption v-for="o in execResultOpts" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
+        <OSelect v-model="filters.uniqueId" placeholder="唯一标识符" variant="outline" searchable size="medium"
+          class="tc-tab__sel tc-tab__sel--wide" @change="handleQuery">
+          <OOption v-for="o in uniqueIdOptions" :key="o.value" :value="o.value" :label="o.label" />
+        </OSelect>
         <OLink color="primary" class="tc-tab__clear" @click="handleClear">清除筛选</OLink>
       </div>
 
@@ -271,9 +270,6 @@ const confirmBatchDelete = () => {
         </OButton>
         <OButton variant="outline" size="medium" @click="handleRun()">
           执行测试
-        </OButton>
-        <OButton variant="outline" size="medium" @click="handleToPipeline()">
-          跳转至流水线
         </OButton>
         <ODropdown v-if="isAdmin" trigger="click">
           <OButton variant="outline" size="medium">

@@ -123,15 +123,6 @@ const allChecked = computed({
     }
   }
 })
-const handleRun = () => {
-  if (!selectedIds.value.length) { OMessage.warning('请先选择用例'); return }
-  OMessage.success(`已选 ${selectedIds.value.length} 条用例，执行任务已提交`)
-}
-
-const handleToPipeline = () => {
-  OMessage.info('跳转至流水线功能开发中')
-}
-
 const handleBatchDelete = () => {
   if (!selectedIds.value.length) { OMessage.warning('请先选择用例'); return }
   OMessage.success(`已选 ${selectedIds.value.length} 条用例，批量删除操作已触发`)
@@ -191,8 +182,6 @@ const handleExport = (type: 'all' | 'selected') => {
       <!-- 右侧：操作按钮 -->
       <div class="tc-board__actions">
         <OButton v-if="isAdmin" variant="solid" color="primary" size="medium">{{ t('tc.create') }}</OButton>
-        <OButton variant="outline" size="medium" @click="handleRun()">{{ t('tc.run') }}</OButton>
-        <OButton variant="outline" size="medium" @click="handleToPipeline()">{{ t('tc.toPipeline') }}</OButton>
         <ODropdown v-if="isAdmin" trigger="click">
           <OButton variant="outline" size="medium">
             更多操作

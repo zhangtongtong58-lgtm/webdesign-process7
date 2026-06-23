@@ -36,6 +36,9 @@ export interface Project {
   owner: string
   productVersions: string[]
   cpuArch: string
+  targetRepo: string
+  pipelineId: string
+  pipelineName: string
   timeline: TimelineStep[]
 }
 
@@ -60,6 +63,7 @@ export interface Patch {
   userKernel: string | null
   patchModule: string
   commitOE: string
+  commitIdOE: string
   prRelated: string | null
   oeMergeTag: string
   oeLink: string
@@ -70,7 +74,7 @@ export interface Patch {
   mainKey: string
   merged: boolean
   customerImpact: string
-  hwRepoStatus: 'all' | 'partial' | 'none'
+  hwRepoStatus: 'merged' | 'unmerged'
   customerMergeStatus: string
   mergeVersion: string
   osReleaseVersion: string
@@ -109,16 +113,14 @@ export interface PipelineTask {
   id: string
   projectId: string
   taskId: string
-  buildStatus: PipelineStatus
-  isoStatus: PipelineStatus
   testStatus: PipelineStatus
   pipelineStatus: PipelineStatus
+  packageDownloadUrl: string | null
+  isoDownloadUrl: string | null
   startedAt: string
   endedAt: string | null
   duration: string | null
   executor: string
-  buildLink?: string
-  isoLink?: string
   testLink?: string
 }
 
@@ -146,6 +148,8 @@ export const MOCK_PROJECTS: Project[] = [
     createdAt: '2025-01-15', lastUpdated: '2026-05-30',
     kernelVersion: '5.10', osVersion: 'openEuler 24.03 LTS',
     owner: '张明', productVersions: ['950'], cpuArch: 'x86_64',
+    targetRepo: 'https://gitcode.com/openeuler/kernel',
+    pipelineId: 'PL-001', pipelineName: 'Kernel-5.10 自动编译流水线',
     timeline: [
       { id: 'ts1', label: '启动', status: 'done', startDate: '2025-01-15' },
       { id: 'ts2', label: '开发', status: 'current', startDate: '2025-02-01', endDate: '2025-03-01' },
@@ -161,6 +165,8 @@ export const MOCK_PROJECTS: Project[] = [
     createdAt: '2025-03-20', lastUpdated: '2026-05-28',
     kernelVersion: '6.6', osVersion: 'openEuler 24.03 LTS',
     owner: '张明', productVersions: ['950', '920'], cpuArch: 'aarch64',
+    targetRepo: 'https://gitcode.com/openeuler/network-stack',
+    pipelineId: 'PL-002', pipelineName: 'Network-Stack 编译流水线',
     timeline: [
       { id: 'ts1', label: '启动', status: 'done', startDate: '2025-03-20' },
       { id: 'ts2', label: '开发', status: 'current', startDate: '2025-04-01', endDate: '2025-06-01' },
@@ -176,6 +182,8 @@ export const MOCK_PROJECTS: Project[] = [
     createdAt: '2024-11-05', lastUpdated: '2026-06-01',
     kernelVersion: '5.10', osVersion: 'openEuler 22.03 LTS',
     owner: '张明', productVersions: ['950'], cpuArch: 'x86_64',
+    targetRepo: 'https://gitcode.com/openeuler/security-hardening',
+    pipelineId: '', pipelineName: '',
     timeline: [
       { id: 'ts1', label: '启动', status: 'done', startDate: '2024-11-05' },
       { id: 'ts2', label: '开发', status: 'done', startDate: '2024-12-01', endDate: '2025-02-01' },
@@ -197,12 +205,13 @@ export const MOCK_PATCHES: Patch[] = [
     patchType: 'Bug_4', productVersion: '950', communityIssue: null,
     userKernel: null, patchModule: 'ACC',
     commitOE: 'crypto: hisilicon - enable error reporting again',
+    commitIdOE: '5f3a1b2c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a',
     prRelated: null, oeMergeTag: '6.6.0-94.0.0', oeLink: 'gitc',
     oePR: 'https://gitcode.com/openeuler/kernel/pull/16483',
     commitUpstream: '80736a97cf94eeb02da6de6cfbc5a74514c85a16',
     upstreamMergeTag: 'v6.18-rc1',
     mainKey: '321138:13916',
-    merged: true, customerImpact: '无影响', hwRepoStatus: 'all',
+    merged: true, customerImpact: '无影响', hwRepoStatus: 'merged',
     customerMergeStatus: '已合入', mergeVersion: 'main-5.10', osReleaseVersion: '24.03-LTS',
   },
   {
@@ -214,10 +223,11 @@ export const MOCK_PATCHES: Patch[] = [
     patchType: 'Bug_5', productVersion: '950', communityIssue: null,
     userKernel: null, patchModule: 'ACC',
     commitOE: 'crypto: hisilicon/zip - do not expose hashagg algorithm when uacce mode is 2',
+    commitIdOE: '3e7c9d1a2b4f5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b',
     prRelated: null, oeMergeTag: '6.6.0-94.0.0', oeLink: 'gitc',
     oePR: 'https://gitcode.com/openeuler/kernel/pull/16483',
     commitUpstream: '', upstreamMergeTag: '', mainKey: '321139:14005',
-    merged: true, customerImpact: '无影响', hwRepoStatus: 'all',
+    merged: true, customerImpact: '无影响', hwRepoStatus: 'merged',
     customerMergeStatus: '已合入', mergeVersion: 'main-5.10', osReleaseVersion: '24.03-LTS',
   },
   {
@@ -229,11 +239,12 @@ export const MOCK_PATCHES: Patch[] = [
     patchType: 'Bug_7', productVersion: '950', communityIssue: null,
     userKernel: null, patchModule: 'ACC',
     commitOE: 'misc: uacce - fix a null pointer access issue when poweroff',
+    commitIdOE: '8a2b4c6d1e3f5a7b9c0d2e4f6a8b0c1d3e5f7a9b1c',
     prRelated: null, oeMergeTag: '6.6.0-119.0.0', oeLink: 'gitc',
     oePR: 'https://gitcode.com/openeuler/kernel/pull/18980',
     commitUpstream: '', upstreamMergeTag: '', mainKey: '324123:14218',
-    merged: false, customerImpact: '修复空指针崩溃', hwRepoStatus: 'partial',
-    customerMergeStatus: '待合入', mergeVersion: '', osReleaseVersion: '',
+    merged: false, customerImpact: '修复空指针崩溃', hwRepoStatus: 'unmerged',
+    customerMergeStatus: '未合入', mergeVersion: '', osReleaseVersion: '',
   },
   {
     id: 'pa4', projectId: 'p1',
@@ -244,11 +255,12 @@ export const MOCK_PATCHES: Patch[] = [
     patchType: 'Feature_1', productVersion: '950', communityIssue: 'I9X2K1',
     userKernel: '内核', patchModule: 'PCIe',
     commitOE: 'pcie/portdrv: add DPC interrupt support for RC port',
+    commitIdOE: '1c3e5a7b9d1f2a4b6c8e0d2f4a6b8c0e2d4f6a8b0c2',
     prRelated: null, oeMergeTag: '6.6.0-90.0.0', oeLink: 'gitc',
     oePR: 'https://gitcode.com/openeuler/kernel/pull/15200',
     commitUpstream: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0',
     upstreamMergeTag: 'v6.17-rc2', mainKey: '318456:12001',
-    merged: true, customerImpact: '提升中断注册可靠性', hwRepoStatus: 'all',
+    merged: true, customerImpact: '提升中断注册可靠性', hwRepoStatus: 'merged',
     customerMergeStatus: '已合入', mergeVersion: 'main-5.10', osReleaseVersion: '24.03-LTS',
   },
   {
@@ -260,10 +272,11 @@ export const MOCK_PATCHES: Patch[] = [
     patchType: 'Bug_3', productVersion: '950', communityIssue: null,
     userKernel: null, patchModule: 'ZIP',
     commitOE: 'crypto: hisilicon/zip - fix perf benchmark path',
+    commitIdOE: '4d6f8a0b2c4e6f8a0b2c4d6e8f0a2b4c6d8e0f2a4b6',
     prRelated: null, oeMergeTag: '6.6.0-120.0.0', oeLink: 'gitc',
     oePR: 'https://gitcode.com/openeuler/kernel/pull/19100',
     commitUpstream: '', upstreamMergeTag: '', mainKey: '325001:14500',
-    merged: false, customerImpact: '性能提升约3%', hwRepoStatus: 'none',
+    merged: false, customerImpact: '性能提升约3%', hwRepoStatus: 'unmerged',
     customerMergeStatus: '未合入', mergeVersion: '', osReleaseVersion: '',
   },
   // p3 patches
@@ -276,11 +289,12 @@ export const MOCK_PATCHES: Patch[] = [
     patchType: 'Bug_12', productVersion: '950', communityIssue: 'CVE-2026-1234',
     userKernel: '内核', patchModule: 'UACCE',
     commitOE: 'uacce: fix device registration security issue',
+    commitIdOE: '7e9a1c3b5d7f9a1c3e5b7d9f1a3c5e7b9d1f3a5c7e',
     prRelated: null, oeMergeTag: '6.6.0-95.0.0', oeLink: 'gitc',
     oePR: 'https://gitcode.com/openeuler/kernel/pull/17000',
     commitUpstream: 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1',
     upstreamMergeTag: 'v6.16-rc3', mainKey: '320001:13000',
-    merged: true, customerImpact: '修复安全漏洞', hwRepoStatus: 'all',
+    merged: true, customerImpact: '修复安全漏洞', hwRepoStatus: 'merged',
     customerMergeStatus: '已合入', mergeVersion: 'sec-5.10', osReleaseVersion: '22.03-LTS-SP3',
   },
 ]
@@ -395,28 +409,26 @@ export const MOCK_TEST_CASES: TestCase[] = [
 export const MOCK_PIPELINE_TASKS: PipelineTask[] = [
   {
     id: 'pt1', projectId: 'p1', taskId: '123456789',
-    buildStatus: 'success', isoStatus: 'success',
     testStatus: 'success', pipelineStatus: 'success',
+    packageDownloadUrl: 'https://repo.openeuler.org/packages/123456789',
+    isoDownloadUrl: 'https://iso.openeuler.org/download/123456789',
     startedAt: '2026.5.22 18:29', endedAt: '2026.5.22 19:29',
     duration: '1:00', executor: 'xws0058756',
-    buildLink: 'https://build.openeuler.org/123456789',
-    isoLink: 'https://iso.openeuler.org/123456789',
     testLink: 'https://test.openeuler.org/123456789',
   },
   {
     id: 'pt2', projectId: 'p1', taskId: '987654321',
-    buildStatus: 'running', isoStatus: 'pending',
     testStatus: 'pending', pipelineStatus: 'running',
+    packageDownloadUrl: null, isoDownloadUrl: null,
     startedAt: '2026.5.22 20:00', endedAt: null,
     duration: null, executor: 'xws0058756',
   },
   {
     id: 'pt3', projectId: 'p3', taskId: '112233445',
-    buildStatus: 'success', isoStatus: 'success',
     testStatus: 'failed', pipelineStatus: 'failed',
+    packageDownloadUrl: 'https://repo.openeuler.org/packages/112233445',
+    isoDownloadUrl: 'https://iso.openeuler.org/download/112233445',
     startedAt: '2026.6.01 10:00', endedAt: '2026.6.01 11:30',
     duration: '1:30', executor: 'xws0058756',
-    buildLink: 'https://build.openeuler.org/112233445',
-    isoLink: 'https://iso.openeuler.org/112233445',
   },
 ]

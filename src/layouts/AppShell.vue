@@ -89,6 +89,7 @@ const userInitial = computed(() => currentUser.value?.name?.charAt(0) ?? 'U')
   flex-direction: column;
   min-height: 100vh;
   background-color: var(--o-color-fill1);
+  font-family: 'HarmonyOS Sans', 'HarmonyHeiTi', sans-serif;
 
   // ── ONavigation PC 顶导 ─────────────────────────────────────────────────────
   // 规格：1920×72px，padding 0 216px（此处内部工具用 gap-8=48px）
@@ -104,7 +105,7 @@ const userInitial = computed(() => currentUser.value?.name?.charAt(0) ?? 'U')
     display: flex;
     align-items: stretch;   // 子项撑满高度，激活线才能到底部
     justify-content: space-between;
-    padding: 0 var(--o-r-gap-8);
+    padding: 0 max(24px, calc((100vw - 1488px) / 2));
     position: sticky;
     top: 0;
     z-index: 100;
@@ -220,8 +221,7 @@ const userInitial = computed(() => currentUser.value?.name?.charAt(0) ?? 'U')
   &__content {
     flex: 1;
     overflow-y: auto;
-    padding: var(--o-r-gap-5);
-    // 内容最大宽度对齐，保持可读性
+    padding: var(--o-r-gap-5) max(24px, calc((100vw - 1488px) / 2));
     min-height: 0;
   }
 }
