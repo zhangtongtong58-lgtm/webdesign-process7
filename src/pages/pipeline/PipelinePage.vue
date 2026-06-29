@@ -187,7 +187,7 @@ const handleClearCaseFilter = () => {
       </OSelect>
       <div class="pipeline-page__btns">
         <OButton variant="solid" color="primary" @click="handleQuery" round="pill">{{ t('action.query') }}</OButton>
-        <OButton variant="outline" @click="handleReset" round="pill">{{ t('action.reset') }}</OButton>
+        <OButton variant="outline" color="primary" @click="handleReset" round="pill">{{ t('action.reset') }}</OButton>
       </div>
     </div>
 
@@ -232,12 +232,12 @@ const handleClearCaseFilter = () => {
         <OSelect v-model="caseFilters.execResult" placeholder="用例执行结果" variant="outline" searchable size="medium" class="pipeline-page__case-sel">
           <OOption v-for="o in execResultOpts" :key="o.value" :value="o.value" :label="o.label" />
         </OSelect>
-        <OButton variant="text" color="primary" size="medium" @click="handleClearCaseFilter">清除筛选</OButton>
+        <OButton variant="text" color="primary" size="medium" round="pill" @click="handleClearCaseFilter">清除筛选</OButton>
       </div>
 
       <div class="pipeline-page__execute-footer">
-        <OButton variant="outline" size="medium" @click="handleReset">取消</OButton>
-        <OButton variant="solid" color="primary" size="medium" @click="handleTrigger">执行流水线</OButton>
+        <OButton variant="outline" color="primary" size="medium" round="pill" @click="handleReset">取消</OButton>
+        <OButton variant="solid" color="primary" size="medium" round="pill" @click="handleTrigger">执行流水线</OButton>
       </div>
     </div>
 
@@ -271,7 +271,7 @@ const handleClearCaseFilter = () => {
           <OButton v-if="isAdmin && row.status === 'running'" variant="text" color="danger" size="medium" round="pill">
             {{ t('action.cancel') }}
           </OButton>
-          <OButton v-if="isAdmin" variant="text" size="medium" round="pill">{{ t('action.rerun') }}</OButton>
+          <OButton v-if="isAdmin" variant="text" color="primary" size="medium" round="pill">{{ t('action.rerun') }}</OButton>
         </div>
       </template>
     </OTable>

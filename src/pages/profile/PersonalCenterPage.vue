@@ -3,7 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   OButton, OTag, OInput, OLink, OMessage, ODivider,
-  ODialog, OSelect, OOption, OTable,
+  ODialog, OSelect, OOption,
 } from '@opensig/opendesign'
 import { useAuth } from '../../composables/useAuth'
 
@@ -13,8 +13,13 @@ const router = useRouter()
 const handleLogout = () => { logout(); router.push('/login') }
 
 // ─── 个人信息 ─────────────────────────────────────────────────────────────────
-const displayName = computed(() => currentUser.value?.name ?? '')
+const displayName = computed(() => currentUser.value?.name ?? 'ToniZhang')
 const displayRole = computed(() => currentUser.value?.role === 'admin' ? '管理员' : '普通用户')
+const company = ref('')
+
+const handleSaveProfile = () => {
+  OMessage.success('个人信息保存成功')
+}
 
 // ─── 绑定邮箱弹窗 ─────────────────────────────────────────────────────────────
 const emailDialog = reactive({ visible: false, email: '', code: '', countdown: 0 })
@@ -43,7 +48,7 @@ const confirmBindEmail = () => {
 
 // ─── 解除手机绑定弹窗 ─────────────────────────────────────────────────────────
 const phoneDialog = reactive({ visible: false, code: '', countdown: 0 })
-const phone = '138****8888'
+const phone = '+86138****5987'
 let phoneTimer: ReturnType<typeof setInterval> | null = null
 
 const openPhoneDialog = () => { phoneDialog.code = ''; phoneDialog.countdown = 0; phoneDialog.visible = true }
@@ -77,92 +82,52 @@ const protocolDialog = reactive({ visible: false })
 const protocolSigned = ref(false)
 const confirmSign = () => { protocolSigned.value = true; OMessage.success('协议签署成功'); protocolDialog.visible = false }
 
-// ─── 权限管理：合并为一张表 ──────────────────────────────────────────────────────
-// 字段：用户名 / 角色（管理者/超级管理员/普通用户）/ 活跃项目 / 操作
-interface PermRow { id: string; name: string; role: string; project: string }
 
-const permSearch = ref('')
-const permRows = ref<PermRow[]>([
-  { id: 'a1', name: 'Admin Manager', role: '超级管理员', project: '全部项目' },
-  { id: 'a2', name: '张工',          role: '管理者',     project: 'Kernel-5.10' },
-  { id: 'a3', name: '李工',          role: '管理者',     project: 'Security' },
-  { id: 'u1', name: 'wWX1116002',    role: '普通用户',   project: 'PCIE/ACC' },
-  { id: 'u2', name: 'xws0058756',    role: '普通用户',   project: 'ACC' },
-  { id: 'u3', name: 'user001',       role: '普通用户',   project: '内核' },
-  { id: 'u4', name: 'user002',       role: '普通用户',   project: '网络' },
-  { id: 'u5', name: 'user003',       role: '普通用户',   project: '驱动' },
-])
-
-const filteredPerm = computed(() => {
-  const kw = permSearch.value.toLowerCase()
-  return permRows.value.filter(r => !kw || r.name.toLowerCase().includes(kw) || r.role.includes(kw))
-})
-
-// OTable 列定义（与用例看板风格一致）
-const permColumns = [
-  { label: '用户名',   key: 'name',    style: { width: '180px', minWidth: '180px' } },
-  { label: '角色',     key: 'role',    style: { width: '120px', minWidth: '120px' } },
-  { label: '活跃项目', key: 'project', style: { width: '180px', minWidth: '180px' } },
-  { label: '操作',     key: 'action',  style: { width: '80px',  minWidth: '80px'  } },
-]
-
-const roleColor = (role: string) => {
-  if (role === '超级管理员') return 'danger'
-  if (role === '管理者') return 'primary'
-  return 'info'
-}
-
-const removePerm = (id: string) => {
-  permRows.value = permRows.value.filter(r => r.id !== id)
-  OMessage.success('已移除成员')
-}
-
-// ─── 新增成员弹窗 ────────────────────────────────────────────────────────────
-const addMemberDialog = reactive({ visible: false, name: '', role: '普通用户', project: '' })
-const openAddMember = () => {
-  Object.assign(addMemberDialog, { visible: true, name: '', role: '普通用户', project: '' })
-}
-const confirmAddMember = () => {
-  if (!addMemberDialog.name.trim()) { OMessage.warning('请输入用户名'); return }
-  if (!addMemberDialog.project.trim()) { OMessage.warning('请输入活跃项目'); return }
-  permRows.value.push({
-    id: `m${Date.now()}`,
-    name: addMemberDialog.name,
-    role: addMemberDialog.role,
-    project: addMemberDialog.project,
-  })
-  OMessage.success('成员添加成功')
-  addMemberDialog.visible = false
-}
 </script>
 
 <template>
   <div class="profile">
-
-    <!-- 页面顶部：标题 -->
-    <div class="profile__page-header">
-      <h1 class="profile__page-title">个人中心</h1>
-    </div>
 
     <!-- ── 个人信息 ── -->
     <section class="profile__section">
       <h2 class="profile__section-title">个人信息</h2>
       <p class="profile__section-desc">您可以在这里进行个人基础信息的修改操作</p>
       <ODivider />
-      <div class="profile__form-rows">
-        <div class="profile__form-row">
-          <span class="profile__form-label">用户名</span>
-          <OInput :model-value="displayName" disabled class="profile__form-input" />
+
+      <div class="profile__info-rows">
+        <!-- 用户名 -->
+        <div class="profile__info-row">
+          <span class="profile__info-label">用户名</span>
+          <span class="profile__info-value">{{ displayName }}</span>
         </div>
-        <div class="profile__form-row">
-          <span class="profile__form-label">所属角色</span>
-          <OInput :model-value="displayRole" disabled class="profile__form-input" />
-          <OButton variant="outline" size="medium" round="pill" color="primary" @click="switchRole">
-            切换为{{ isAdmin ? '普通用户' : '管理者' }}视图
+
+        <!-- 所属角色 -->
+        <div class="profile__info-row">
+          <span class="profile__info-label">
+            所属角色
+            <span class="profile__info-tip">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </span>
+          </span>
+          <span class="profile__info-value">{{ displayRole === '管理员' ? '管理员' : '暂无角色' }}</span>
+          <OButton v-if="isAdmin" variant="text" color="primary" size="small" @click="switchRole">
+            切换为普通用户视图
           </OButton>
         </div>
+
+        <!-- 企业/组织 -->
+        <div class="profile__info-row">
+          <span class="profile__info-label">企业/组织</span>
+          <OInput v-model="company" placeholder="请输入你的公司" class="profile__info-input" />
+        </div>
       </div>
-      <p class="profile__role-hint">此按钮仅用于不同身份的效果展示，不作为实际的角色权限变更</p>
+
+      <div class="profile__save-row">
+        <OButton variant="solid" color="primary" size="medium" round="pill" @click="handleSaveProfile">保存修改</OButton>
+      </div>
     </section>
 
     <!-- ── 账号设置 ── -->
@@ -177,18 +142,20 @@ const confirmAddMember = () => {
         <div class="profile__account-list">
           <div class="profile__account-item">
             <span class="profile__account-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4.15615 4.21297C5.59848 2.80087 7.85643 2.68519 9.30316 3.94477L9.45693 4.08684L14.4285 8.95429L14.5665 9.09814C15.6703 10.3246 15.6286 12.2251 14.4538 13.5102L14.312 13.6568L13.7577 14.1994L13.6702 14.2723C13.3946 14.4662 13.0112 14.4376 12.7678 14.1889C12.5243 13.9402 12.5014 13.5514 12.7096 13.2769L12.7931 13.1843L13.3346 12.6544L13.4596 12.5215C14.0903 11.793 14.1393 10.764 13.563 10.0775L13.4525 9.95815L8.47541 5.0852L8.35129 4.97302C7.45724 4.22758 6.04949 4.31857 5.13556 5.21335C4.23598 6.09408 4.13337 7.44432 4.88661 8.3161L5.00176 8.43874L6.93103 10.3277L7.00576 10.4137C7.20547 10.6851 7.18493 11.069 6.94152 11.3176C6.69802 11.5663 6.30974 11.5974 6.03094 11.3951L5.94621 11.3232L4.02526 9.44209L3.88175 9.29308C2.59224 7.87262 2.70014 5.63847 4.15615 4.21297ZM11.1224 9.90042C10.8789 9.6518 10.4956 9.62313 10.22 9.81705L10.1325 9.88994L9.57814 10.4326L9.43639 10.5792C8.26154 11.8642 8.21986 13.7648 9.32371 14.9912L9.46167 15.1351L14.4332 20.0025L14.587 20.1446C16.0338 21.4042 18.2917 21.2885 19.734 19.8764C21.19 18.4509 21.2979 16.2167 20.0084 14.7963L19.8649 14.6473L17.944 12.7662L17.8592 12.6943C17.5804 12.4919 17.1922 12.5231 16.9487 12.7718C16.7053 13.0204 16.6847 13.4042 16.8844 13.6757L16.9591 13.7617L18.8884 15.6506L19.0036 15.7733C19.7568 16.645 19.6542 17.9953 18.7546 18.876C17.8407 19.7708 16.4329 19.8618 15.5389 19.1163L15.4148 19.0042L10.4377 14.1312L10.3272 14.0118C9.75092 13.3253 9.7999 12.2964 10.4306 11.5678L10.5556 11.4349L11.0971 10.9051L11.1806 10.8124C11.3887 10.538 11.3659 10.1491 11.1224 9.90042Z" fill="currentColor" fill-opacity="0.8"/>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M2 7l10 7 10-7" stroke="currentColor" stroke-width="1.5"/>
               </svg>
             </span>
             <span class="profile__account-label">邮箱地址</span>
-            <span class="profile__account-value">{{ emailDialog.email || '未绑定' }}</span>
+            <span class="profile__account-value profile__account-value--muted">{{ emailDialog.email || '未绑定' }}</span>
             <OLink color="primary" @click="openEmailDialog">绑定</OLink>
           </div>
           <div class="profile__account-item">
             <span class="profile__account-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4.15615 4.21297C5.59848 2.80087 7.85643 2.68519 9.30316 3.94477L9.45693 4.08684L14.4285 8.95429L14.5665 9.09814C15.6703 10.3246 15.6286 12.2251 14.4538 13.5102L14.312 13.6568L13.7577 14.1994L13.6702 14.2723C13.3946 14.4662 13.0112 14.4376 12.7678 14.1889C12.5243 13.9402 12.5014 13.5514 12.7096 13.2769L12.7931 13.1843L13.3346 12.6544L13.4596 12.5215C14.0903 11.793 14.1393 10.764 13.563 10.0775L13.4525 9.95815L8.47541 5.0852L8.35129 4.97302C7.45724 4.22758 6.04949 4.31857 5.13556 5.21335C4.23598 6.09408 4.13337 7.44432 4.88661 8.3161L5.00176 8.43874L6.93103 10.3277L7.00576 10.4137C7.20547 10.6851 7.18493 11.069 6.94152 11.3176C6.69802 11.5663 6.30974 11.5974 6.03094 11.3951L5.94621 11.3232L4.02526 9.44209L3.88175 9.29308C2.59224 7.87262 2.70014 5.63847 4.15615 4.21297ZM11.1224 9.90042C10.8789 9.6518 10.4956 9.62313 10.22 9.81705L10.1325 9.88994L9.57814 10.4326L9.43639 10.5792C8.26154 11.8642 8.21986 13.7648 9.32371 14.9912L9.46167 15.1351L14.4332 20.0025L14.587 20.1446C16.0338 21.4042 18.2917 21.2885 19.734 19.8764C21.19 18.4509 21.2979 16.2167 20.0084 14.7963L19.8649 14.6473L17.944 12.7662L17.8592 12.6943C17.5804 12.4919 17.1922 12.5231 16.9487 12.7718C16.7053 13.0204 16.6847 13.4042 16.8844 13.6757L16.9591 13.7617L18.8884 15.6506L19.0036 15.7733C19.7568 16.645 19.6542 17.9953 18.7546 18.876C17.8407 19.7708 16.4329 19.8618 15.5389 19.1163L15.4148 19.0042L10.4377 14.1312L10.3272 14.0118C9.75092 13.3253 9.7999 12.2964 10.4306 11.5678L10.5556 11.4349L11.0971 10.9051L11.1806 10.8124C11.3887 10.538 11.3659 10.1491 11.1224 9.90042Z" fill="currentColor" fill-opacity="0.8"/>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="5" y="2" width="14" height="20" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="12" y1="18" x2="12" y2="18.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               </svg>
             </span>
             <span class="profile__account-label">绑定手机</span>
@@ -205,83 +172,63 @@ const confirmAddMember = () => {
         <div class="profile__account-list">
           <div class="profile__account-item">
             <span class="profile__account-icon profile__account-icon--github">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4.15615 4.21297C5.59848 2.80087 7.85643 2.68519 9.30316 3.94477L9.45693 4.08684L14.4285 8.95429L14.5665 9.09814C15.6703 10.3246 15.6286 12.2251 14.4538 13.5102L14.312 13.6568L13.7577 14.1994L13.6702 14.2723C13.3946 14.4662 13.0112 14.4376 12.7678 14.1889C12.5243 13.9402 12.5014 13.5514 12.7096 13.2769L12.7931 13.1843L13.3346 12.6544L13.4596 12.5215C14.0903 11.793 14.1393 10.764 13.563 10.0775L13.4525 9.95815L8.47541 5.0852L8.35129 4.97302C7.45724 4.22758 6.04949 4.31857 5.13556 5.21335C4.23598 6.09408 4.13337 7.44432 4.88661 8.3161L5.00176 8.43874L6.93103 10.3277L7.00576 10.4137C7.20547 10.6851 7.18493 11.069 6.94152 11.3176C6.69802 11.5663 6.30974 11.5974 6.03094 11.3951L5.94621 11.3232L4.02526 9.44209L3.88175 9.29308C2.59224 7.87262 2.70014 5.63847 4.15615 4.21297ZM11.1224 9.90042C10.8789 9.6518 10.4956 9.62313 10.22 9.81705L10.1325 9.88994L9.57814 10.4326L9.43639 10.5792C8.26154 11.8642 8.21986 13.7648 9.32371 14.9912L9.46167 15.1351L14.4332 20.0025L14.587 20.1446C16.0338 21.4042 18.2917 21.2885 19.734 19.8764C21.19 18.4509 21.2979 16.2167 20.0084 14.7963L19.8649 14.6473L17.944 12.7662L17.8592 12.6943C17.5804 12.4919 17.1922 12.5231 16.9487 12.7718C16.7053 13.0204 16.6847 13.4042 16.8844 13.6757L16.9591 13.7617L18.8884 15.6506L19.0036 15.7733C19.7568 16.645 19.6542 17.9953 18.7546 18.876C17.8407 19.7708 16.4329 19.8618 15.5389 19.1163L15.4148 19.0042L10.4377 14.1312L10.3272 14.0118C9.75092 13.3253 9.7999 12.2964 10.4306 11.5678L10.5556 11.4349L11.0971 10.9051L11.1806 10.8124C11.3887 10.538 11.3659 10.1491 11.1224 9.90042Z" fill="currentColor" fill-opacity="0.8"/>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z" fill="currentColor"/>
               </svg>
             </span>
-            <span class="profile__account-label">GitHub</span>
+            <span class="profile__account-label">Github</span>
             <span class="profile__account-value"></span>
-            <OLink color="primary" @click="openThirdDialog('GitHub')">绑定</OLink>
+            <OLink color="primary" @click="openThirdDialog('Github')">绑定</OLink>
           </div>
           <div class="profile__account-item">
-            <span class="profile__account-icon profile__account-icon--gitee">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4.15615 4.21297C5.59848 2.80087 7.85643 2.68519 9.30316 3.94477L9.45693 4.08684L14.4285 8.95429L14.5665 9.09814C15.6703 10.3246 15.6286 12.2251 14.4538 13.5102L14.312 13.6568L13.7577 14.1994L13.6702 14.2723C13.3946 14.4662 13.0112 14.4376 12.7678 14.1889C12.5243 13.9402 12.5014 13.5514 12.7096 13.2769L12.7931 13.1843L13.3346 12.6544L13.4596 12.5215C14.0903 11.793 14.1393 10.764 13.563 10.0775L13.4525 9.95815L8.47541 5.0852L8.35129 4.97302C7.45724 4.22758 6.04949 4.31857 5.13556 5.21335C4.23598 6.09408 4.13337 7.44432 4.88661 8.3161L5.00176 8.43874L6.93103 10.3277L7.00576 10.4137C7.20547 10.6851 7.18493 11.069 6.94152 11.3176C6.69802 11.5663 6.30974 11.5974 6.03094 11.3951L5.94621 11.3232L4.02526 9.44209L3.88175 9.29308C2.59224 7.87262 2.70014 5.63847 4.15615 4.21297ZM11.1224 9.90042C10.8789 9.6518 10.4956 9.62313 10.22 9.81705L10.1325 9.88994L9.57814 10.4326L9.43639 10.5792C8.26154 11.8642 8.21986 13.7648 9.32371 14.9912L9.46167 15.1351L14.4332 20.0025L14.587 20.1446C16.0338 21.4042 18.2917 21.2885 19.734 19.8764C21.19 18.4509 21.2979 16.2167 20.0084 14.7963L19.8649 14.6473L17.944 12.7662L17.8592 12.6943C17.5804 12.4919 17.1922 12.5231 16.9487 12.7718C16.7053 13.0204 16.6847 13.4042 16.8844 13.6757L16.9591 13.7617L18.8884 15.6506L19.0036 15.7733C19.7568 16.645 19.6542 17.9953 18.7546 18.876C17.8407 19.7708 16.4329 19.8618 15.5389 19.1163L15.4148 19.0042L10.4377 14.1312L10.3272 14.0118C9.75092 13.3253 9.7999 12.2964 10.4306 11.5678L10.5556 11.4349L11.0971 10.9051L11.1806 10.8124C11.3887 10.538 11.3659 10.1491 11.1224 9.90042Z" fill="currentColor" fill-opacity="0.8"/>
+            <span class="profile__account-icon profile__account-icon--atomgit">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="#C71D23"/>
+                <text x="12" y="16" text-anchor="middle" fill="white" font-size="9" font-weight="bold">A</text>
               </svg>
             </span>
-            <span class="profile__account-label">gitcode</span>
-            <span class="profile__account-value"></span>
-            <OLink color="primary" @click="openThirdDialog('gitcode')">绑定</OLink>
+            <span class="profile__account-label">AtomGit</span>
+            <span class="profile__account-value">tonizhang58</span>
+            <OLink color="primary">解除绑定</OLink>
           </div>
         </div>
       </div>
 
-      <!-- 协议签署 -->
+      <!-- 账号安全 -->
       <div class="profile__account-group">
-        <h3 class="profile__account-subtitle">协议签署</h3>
-        <div class="profile__account-list">
-          <div class="profile__account-item">
-            <span class="profile__account-value profile__account-value--protocol">
-              当前协议签署状态：
-              <OLink v-if="!protocolSigned" color="primary" href="javascript:void(0)"
-                @click="protocolDialog.visible = true">未签署</OLink>
-              <OTag v-else color="success" size="medium">已签署</OTag>
-            </span>
-            <OButton v-if="!protocolSigned" variant="text" color="primary" size="medium" round="pill"
-              @click="protocolDialog.visible = true">去签署</OButton>
+        <h3 class="profile__account-subtitle">账号安全</h3>
+
+        <div class="profile__security-row">
+          <div class="profile__security-info">
+            <h4 class="profile__security-title">登录密码</h4>
+            <p class="profile__security-desc">通过验证手机号、邮箱等方式修改密码，修改成功后需要重新登录</p>
+          </div>
+          <OLink color="primary">修改</OLink>
+        </div>
+
+        <div class="profile__security-row">
+          <div class="profile__security-info">
+            <h4 class="profile__security-title">已签署协议</h4>
+            <p class="profile__security-desc">
+              《<OLink color="primary">隐私声明</OLink>》与《<OLink color="primary">法律声明</OLink>》签署于2026年5月18日
+            </p>
           </div>
         </div>
       </div>
 
-      <!-- 退出登录 -->
-      <div class="profile__logout">
-        <OButton variant="outline" size="medium" round="pill" color="danger" @click="handleLogout">
-          退出登录
-        </OButton>
+      <!-- 注销账号 -->
+      <div class="profile__account-group">
+        <h3 class="profile__account-subtitle">注销账号</h3>
+        <div class="profile__security-row">
+          <div class="profile__security-info">
+            <p class="profile__security-desc">永久删除账号和所有数据，请谨慎操作</p>
+          </div>
+          <OLink color="danger">注销</OLink>
+        </div>
       </div>
     </section>
 
-    <!-- ── 权限管理（仅管理员可见）── -->
-    <section v-if="isAdmin" class="profile__section">
-      <h2 class="profile__section-title">权限管理</h2>
-      <ODivider />
 
-      <!-- 工具栏：搜索 + 新增成员 -->
-      <div class="profile__perm-toolbar">
-        <OInput
-          v-model="permSearch"
-          placeholder="搜索用户名/角色"
-          clearable
-          class="profile__perm-search"
-        />
-        <OButton variant="solid" color="primary" size="medium" round="pill" @click="openAddMember">
-          + 新增成员
-        </OButton>
-      </div>
-
-      <!-- OTable：与用例看板风格一致 -->
-      <div class="profile__perm-table-wrap">
-        <OTable :columns="permColumns" :data="filteredPerm">
-          <template #td_role="{ row }">
-            <OTag :color="roleColor(row.role)" size="medium" variant="outline">{{ row.role }}</OTag>
-          </template>
-          <template #td_action="{ row }">
-            <OButton variant="text" color="danger" size="small" round="pill"
-              @click="removePerm(row.id)">移除</OButton>
-          </template>
-        </OTable>
-      </div>
-    </section>
 
   </div>
 
@@ -296,7 +243,7 @@ const confirmAddMember = () => {
         <label class="p-dialog-label"><span class="p-dialog-required">*</span>验证码</label>
         <div class="p-dialog-code-row">
           <OInput v-model="emailDialog.code" placeholder="请输入验证码" clearable />
-          <OButton variant="outline" size="medium" round="pill"
+          <OButton variant="outline" color="primary" size="medium" round="pill"
             :disabled="emailDialog.countdown > 0" @click="sendEmailCode">
             {{ emailDialog.countdown > 0 ? `${emailDialog.countdown}s 后重发` : '发送验证码' }}
           </OButton>
@@ -306,7 +253,7 @@ const confirmAddMember = () => {
     </div>
     <template #footer>
       <div class="p-dialog-footer">
-        <OButton variant="outline" size="medium" round="pill" @click="emailDialog.visible = false">取消</OButton>
+        <OButton variant="outline" color="primary" size="medium" round="pill" @click="emailDialog.visible = false">取消</OButton>
         <OButton variant="solid" color="primary" size="medium" round="pill" @click="confirmBindEmail">确认绑定</OButton>
       </div>
     </template>
@@ -320,7 +267,7 @@ const confirmAddMember = () => {
         <label class="p-dialog-label"><span class="p-dialog-required">*</span>验证码</label>
         <div class="p-dialog-code-row">
           <OInput v-model="phoneDialog.code" placeholder="请输入验证码" clearable />
-          <OButton variant="outline" size="medium" round="pill"
+          <OButton variant="outline" color="primary" size="medium" round="pill"
             :disabled="phoneDialog.countdown > 0" @click="sendPhoneCode">
             {{ phoneDialog.countdown > 0 ? `${phoneDialog.countdown}s 后重发` : '发送验证码' }}
           </OButton>
@@ -329,13 +276,13 @@ const confirmAddMember = () => {
     </div>
     <template #footer>
       <div class="p-dialog-footer">
-        <OButton variant="outline" size="medium" round="pill" @click="phoneDialog.visible = false">取消</OButton>
+        <OButton variant="outline" color="primary" size="medium" round="pill" @click="phoneDialog.visible = false">取消</OButton>
         <OButton variant="solid" color="danger" size="medium" round="pill" @click="confirmUnbindPhone">确认解绑</OButton>
       </div>
     </template>
   </ODialog>
 
-  <!-- ══ 第三方账号绑定弹窗（GitHub / gitcode 共用）══════════════════════════ -->
+  <!-- ══ 第三方账号绑定弹窗 ═══════════════════════════════════════════════════ -->
   <ODialog v-model:visible="thirdDialog.visible" :title="`绑定 ${thirdDialog.platform} 账号`" size="small">
     <div class="p-dialog-body">
       <div class="p-dialog-field">
@@ -349,63 +296,13 @@ const confirmAddMember = () => {
     </div>
     <template #footer>
       <div class="p-dialog-footer">
-        <OButton variant="outline" size="medium" round="pill" @click="thirdDialog.visible = false">取消</OButton>
+        <OButton variant="outline" color="primary" size="medium" round="pill" @click="thirdDialog.visible = false">取消</OButton>
         <OButton variant="solid" color="primary" size="medium" round="pill" @click="confirmBindThird">确认绑定</OButton>
       </div>
     </template>
   </ODialog>
 
-  <!-- ══ 协议签署弹窗 ══════════════════════════════════════════════════════════ -->
-  <ODialog v-model:visible="protocolDialog.visible" title="开发者协议" size="medium">
-    <div class="p-dialog-body">
-      <div class="p-protocol-content">
-        <p><strong>一、协议说明</strong></p>
-        <p>本协议是您与能效提升工作台（以下简称"本平台"）之间关于使用平台服务的法律协议。请仔细阅读以下条款，继续使用即表示同意。</p>
-        <p><strong>二、用户权责</strong></p>
-        <p>1. 用户须保证提交的补丁和测试用例符合开源社区规范，不得包含恶意代码或侵权内容。</p>
-        <p>2. 用户应对账号下的所有操作负责，不得共享账号或将账号转让他人。</p>
-        <p>3. 用户同意平台收集必要的使用数据用于改善服务质量，数据处理遵循隐私政策。</p>
-        <p><strong>三、平台权利</strong></p>
-        <p>平台保留在违规情况下暂停或终止用户账号的权利，并有权对提交内容进行审核。</p>
-        <p><strong>四、免责声明</strong></p>
-        <p>平台不对因系统故障、网络中断等不可控因素导致的数据损失承担责任。</p>
-      </div>
-    </div>
-    <template #footer>
-      <div class="p-dialog-footer">
-        <OButton variant="outline" size="medium" round="pill" @click="protocolDialog.visible = false">暂不签署</OButton>
-        <OButton variant="solid" color="primary" size="medium" round="pill" @click="confirmSign">同意并签署</OButton>
-      </div>
-    </template>
-  </ODialog>
 
-  <!-- ══ 新增成员弹窗（管理员 + 普通用户合并）══════════════════════════════════ -->
-  <ODialog v-model:visible="addMemberDialog.visible" title="新增成员" size="small">
-    <div class="p-dialog-body">
-      <div class="p-dialog-field">
-        <label class="p-dialog-label"><span class="p-dialog-required">*</span>用户名</label>
-        <OInput v-model="addMemberDialog.name" placeholder="请输入用户名" clearable />
-      </div>
-      <div class="p-dialog-field">
-        <label class="p-dialog-label"><span class="p-dialog-required">*</span>角色</label>
-        <OSelect v-model="addMemberDialog.role">
-          <OOption value="超级管理员" label="超级管理员" />
-          <OOption value="管理者" label="管理者" />
-          <OOption value="普通用户" label="普通用户" />
-        </OSelect>
-      </div>
-      <div class="p-dialog-field">
-        <label class="p-dialog-label"><span class="p-dialog-required">*</span>活跃项目</label>
-        <OInput v-model="addMemberDialog.project" placeholder="请输入活跃项目" clearable />
-      </div>
-    </div>
-    <template #footer>
-      <div class="p-dialog-footer">
-        <OButton variant="outline" size="medium" round="pill" @click="addMemberDialog.visible = false">取消</OButton>
-        <OButton variant="solid" color="primary" size="medium" round="pill" @click="confirmAddMember">确认添加</OButton>
-      </div>
-    </template>
-  </ODialog>
 
 </template>
 
@@ -415,28 +312,13 @@ const confirmAddMember = () => {
   flex-direction: column;
   gap: var(--o-r-gap-5);
   max-width: 900px;
-  margin: 0 auto;      // 水平居中
-
-  // ── 页面标题行 ────────────────────────────────────────────────────────────
-  &__page-header {
-    padding-bottom: var(--o-r-gap-4);
-    border-bottom: 1px solid var(--o-color-control4);
-  }
-
-  &__page-title {
-    margin: 0;
-    color: var(--o-color-info1);
-    font-size: var(--o-r-font_size-h2);
-    line-height: var(--o-r-line_height-h2);
-    font-weight: var(--o-font_weight-bold);
-  }
+  margin: 0 auto;
 
   // ── 区块通用 ──────────────────────────────────────────────────────────────
   &__section {
-    background-color: var(--o-color-fill2);
+    background-color: #fff;
     border-radius: var(--o-radius_control-m);
     padding: var(--o-r-gap-6);
-    margin-bottom: var(--o-r-gap-5);
   }
 
   &__section-title {
@@ -454,44 +336,73 @@ const confirmAddMember = () => {
     line-height: var(--o-r-line_height-tip1);
   }
 
-  // ── 表单行 ────────────────────────────────────────────────────────────────
-  &__form-rows {
+  // ── 个人信息行 ────────────────────────────────────────────────────────────
+  &__info-rows {
     display: flex;
     flex-direction: column;
-    gap: var(--o-r-gap-4);
-    margin-top: var(--o-r-gap-4);
+    gap: var(--o-r-gap-5);
+    margin-top: var(--o-r-gap-5);
   }
 
-  &__form-row {
+  &__info-row {
     display: flex;
     align-items: center;
     gap: var(--o-r-gap-4);
   }
 
-  &__form-label {
-    width: 80px;
+  &__info-label {
+    width: 100px;
     flex-shrink: 0;
     color: var(--o-color-info2);
     font-size: var(--o-r-font_size-text1);
     line-height: var(--o-r-line_height-text1);
+    display: flex;
+    align-items: center;
+    gap: var(--o-r-gap-1);
   }
 
-  &__form-input { flex: 1; }
-
-  &__role-hint {
-    margin: var(--o-r-gap-2) 0 0 0;
+  &__info-tip {
     color: var(--o-color-info4);
-    font-size: var(--o-r-font_size-tip2);
-    line-height: var(--o-r-line_height-tip2);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  &__info-value {
+    flex: 1;
+    color: var(--o-color-info1);
+    font-size: var(--o-r-font_size-text1);
+    line-height: var(--o-r-line_height-text1);
+
+    &--muted { color: var(--o-color-info3); }
+  }
+
+  &__info-input {
+    width: 360px;
+  }
+
+  // ── 用户头像 ──────────────────────────────────────────────────────────────
+  &__avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background-color: var(--o-color-primary4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  // ── 保存按钮 ──────────────────────────────────────────────────────────────
+  &__save-row {
+    margin-top: var(--o-r-gap-6);
+    padding-top: var(--o-r-gap-4);
   }
 
   // ── 账号设置列表样式 ─────────────────────────────────────────────────────
   &__account-group {
     margin-top: var(--o-r-gap-5);
-    padding-top: var(--o-r-gap-4);
-    border-top: 1px solid var(--o-color-control3);
 
-    &:first-of-type { margin-top: var(--o-r-gap-4); border-top: none; }
+    &:first-of-type { margin-top: var(--o-r-gap-4); }
   }
 
   &__account-subtitle {
@@ -524,15 +435,16 @@ const confirmAddMember = () => {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: var(--o-r-font_size-tip1);
     flex-shrink: 0;
 
-    &--github { color: #24292e; }
-    &--gitee { color: #c71d23; }
+    &--gitee { background-color: #fff0f0; }
+    &--github { background-color: var(--o-color-fill3); }
+    &--openatom { background-color: #e6f4ff; }
+    &--atomgit { background-color: #fff0f0; }
   }
 
   &__account-label {
-    width: 80px;
+    width: 100px;
     flex-shrink: 0;
     color: var(--o-color-info2);
     font-size: var(--o-r-font_size-text1);
@@ -542,133 +454,38 @@ const confirmAddMember = () => {
     flex: 1;
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-text1);
-
-    &--protocol { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); }
   }
 
-  // ── 退出登录按钮 ─────────────────────────────────────────────────────────
-  &__logout {
-    margin-top: var(--o-r-gap-5);
-    padding-top: var(--o-r-gap-4);
-    border-top: 1px solid var(--o-color-control4);
+  // ── 账号安全行 ────────────────────────────────────────────────────────────
+  &__security-row {
     display: flex;
-    justify-content: flex-end;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: var(--o-r-gap-4) 0;
+    border-bottom: 1px solid var(--o-color-control4);
+    gap: var(--o-r-gap-4);
+
+    &:last-child { border-bottom: none; }
   }
 
-  // ── 权限管理（两列）──────────────────────────────────────────────────────
-  &__perm {
-    display: flex;
-    gap: var(--o-r-grid-column-gutter);
-    margin-top: var(--o-r-gap-4);
-
-    @media (max-width: 840px) { flex-direction: column; }
-  }
-
-  &__perm-col {
+  &__security-info {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: var(--o-r-gap-3);
-    border: 1px solid var(--o-color-control1);
-    border-radius: var(--o-radius_control-m);
-    padding: var(--o-r-gap-4);
   }
 
-  &__perm-col-title {
-    margin: 0;
+  &__security-title {
+    margin: 0 0 var(--o-r-gap-1) 0;
     color: var(--o-color-info1);
     font-size: var(--o-r-font_size-text1);
-    line-height: var(--o-r-line_height-text1);
     font-weight: var(--o-font_weight-bold);
   }
 
-  &__perm-search { width: 100%; }
-
-  // 工具栏（搜索 + 新增成员同行）
-  &__perm-toolbar {
-    display: flex;
-    align-items: center;
-    gap: var(--o-r-gap-3);
-    margin-bottom: var(--o-r-gap-4);
-  }
-
-  // 管理者列表
-  &__perm-list {
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--o-color-control1);
-    border-radius: var(--o-radius_control-m);
-    overflow: hidden;
-  }
-
-  &__perm-item {
-    display: flex;
-    align-items: center;
-    gap: var(--o-r-gap-3);
-    padding: var(--o-r-gap-3) var(--o-r-gap-4);
-    background-color: var(--o-color-fill3);
-    border-bottom: 1px solid var(--o-color-control4);
-    &:last-child { border-bottom: none; }
-  }
-
-  &__perm-item-name {
-    flex: 1;
-    color: var(--o-color-info1);
-    font-size: var(--o-r-font_size-text1);
-    line-height: var(--o-r-line_height-text1);
-  }
-
-  // 用户表格
-  &__perm-user-table {
-    border: 1px solid var(--o-color-control1);
-    border-radius: var(--o-radius_control-m);
-    overflow: hidden;
-  }
-
-  &__perm-user-header {
-    display: flex;
-    align-items: center;
-    padding: var(--o-r-gap-3) var(--o-r-gap-4);
-    background-color: var(--o-color-fill3);
-    border-bottom: 1px solid var(--o-color-control1);
-    span {
-      color: var(--o-color-info2);
-      font-size: var(--o-r-font_size-tip1);
-      font-weight: var(--o-font_weight-bold);
-    }
-  }
-
-  &__perm-user-row {
-    display: flex;
-    align-items: center;
-    padding: var(--o-r-gap-3) var(--o-r-gap-4);
-    background-color: var(--o-color-fill2);
-    border-bottom: 1px solid var(--o-color-control4);
-    &:last-child { border-bottom: none; }
-  }
-
-  // 三列宽度
-  &__perm-user-name-col   { flex: 1.2; color: var(--o-color-info1); font-size: var(--o-r-font_size-text1); }
-  &__perm-user-proj-col   { flex: 1.5; color: var(--o-color-info2); font-size: var(--o-r-font_size-text1); }
-  &__perm-user-action-col {
-    flex: 0 0 56px;
-    text-align: right;
+  &__security-desc {
+    margin: 0;
     color: var(--o-color-info3);
     font-size: var(--o-r-font_size-tip1);
-    font-weight: var(--o-font_weight-bold);
+    line-height: var(--o-r-line_height-tip1);
   }
 
-  &__perm-footer {
-    padding-top: var(--o-r-gap-2);
-    border-top: 1px solid var(--o-color-control4);
-  }
-
-  &__perm-empty {
-    padding: var(--o-r-gap-5);
-    text-align: center;
-    color: var(--o-color-info4);
-    font-size: var(--o-r-font_size-tip1);
-  }
 }
 
 // ── 弹窗通用样式 ──────────────────────────────────────────────────────────────
@@ -696,14 +513,12 @@ const confirmAddMember = () => {
   margin-right: var(--o-r-gap-1);
 }
 
-// 验证码行：输入框 + 发送按钮
 .p-dialog-code-row {
   display: flex;
   gap: var(--o-r-gap-3);
   align-items: center;
 }
 
-// 提示文字
 .p-dialog-hint {
   margin: 0;
   color: var(--o-color-info4);
@@ -711,7 +526,6 @@ const confirmAddMember = () => {
   line-height: var(--o-r-line_height-tip2);
 }
 
-// 确认描述
 .p-dialog-desc {
   margin: 0;
   color: var(--o-color-info2);
@@ -720,19 +534,6 @@ const confirmAddMember = () => {
   strong { color: var(--o-color-info1); }
 }
 
-// 协议正文
-.p-protocol-content {
-  max-height: 280px;
-  overflow-y: auto;
-  padding-right: var(--o-r-gap-2);
-  display: flex;
-  flex-direction: column;
-  gap: var(--o-r-gap-3);
-  p { margin: 0; color: var(--o-color-info2); font-size: var(--o-r-font_size-text1); line-height: var(--o-r-line_height-text1); }
-  strong { color: var(--o-color-info1); }
-}
-
-// 弹窗底部
 .p-dialog-footer {
   display: flex;
   justify-content: flex-end;

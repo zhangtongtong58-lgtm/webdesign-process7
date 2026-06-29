@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -9,7 +9,7 @@ import {
   ORadioGroup, ORadio, OCheckbox, OPagination, OUpload,
 } from '@opensig/opendesign'
 import { useAuth } from '../../composables/useAuth'
-import { MOCK_PROJECTS, MOCK_PIPELINE_TASKS, MOCK_TEST_CASES, type Project, type PipelineStatus } from '../../mock/data'
+import { MOCK_PROJECTS, MOCK_PATCHES, MOCK_PIPELINE_TASKS, MOCK_TEST_CASES, type Project, type PipelineStatus } from '../../mock/data'
 import { t } from '../../i18n/zh'
 import PatchTab from './components/PatchTab.vue'
 import TestCaseTab from './components/TestCaseTab.vue'
@@ -93,13 +93,44 @@ const openEditDialog = () => {
   editForm.productVersion = p.productVersions[0] ?? ''; editForm.cpuArch = p.cpuArch
   editForm.targetRepo = p.targetRepo
   editForm.pipelineId = p.pipelineId; editForm.pipelineName = p.pipelineName
+  initEditingTimeline()
   editDialog.visible = true
+}
+
+// ─── 出口评审报告 ─────────────────────────────────────────────────────────────
+const reportDialog = reactive({ visible: false })
+
+// 补丁统计
+const patchStats = computed(() => {
+  const patches = MOCK_PATCHES.filter(p => p.projectId === selectedProjectId.value)
+  const total = patches.length
+  const merged = patches.filter(p => p.status === 'merged').length
+  const pending = patches.filter(p => p.status === 'pending').length
+  const conflict = patches.filter(p => p.status === 'rejected').length
+  return { total, merged, pending, conflict }
+})
+
+// 用例统计
+const testCaseStats = computed(() => {
+  const cases = MOCK_TEST_CASES.filter(tc => tc.projectId === selectedProjectId.value)
+  const total = cases.length
+  const passed = cases.filter(tc => tc.lastExecResult === 'passed').length
+  const failed = cases.filter(tc => tc.lastExecResult === 'fail').length
+  const blocked = cases.filter(tc => tc.lastExecResult === 'block').length
+  const unavailable = cases.filter(tc => tc.lastExecResult === 'unavailable').length
+  return { total, passed, failed, blocked, unavailable }
+})
+
+const openReportDialog = () => {
+  reportDialog.visible = true
 }
 
 const handleEditConfirm = () => {
   if (!editForm.name.trim()) { OMessage.warning('项目名称不能为空'); return }
   if (!editForm.targetRepo.trim()) { OMessage.warning('目标仓库不能为空'); return }
   Object.assign(form, editForm)
+  const tlOk = saveTimeline()
+  if (!tlOk) return
   OMessage.success('保存成功')
   editDialog.visible = false
 }
@@ -144,12 +175,19 @@ const isLineActive = (idx: number) =>
 const mapStepStatus = (s: 'done' | 'current' | 'pending') =>
   ({ done: 'finished', current: 'processing', pending: 'waiting' } as const)[s]
 
+// 将日期格式从 YYYY-MM-DD 转换为 YYYY/MM/DD
+const formatDate = (date: string): string => {
+  return date.replace(/-/g, '/')
+}
+
 // 将节点的时间段格式化为描述文字（显示在步骤标题下方）
 const formatStepDesc = (node: LocalNode): string => {
   const ps = node.periods.filter(p => p.startDate)
   if (!ps.length) return '待设置'
   const first = ps[0]
-  const dateStr = first.endDate ? `${first.startDate} → ${first.endDate}` : first.startDate
+  const startDate = formatDate(first.startDate)
+  const endDate = first.endDate ? formatDate(first.endDate) : ''
+  const dateStr = endDate ? `${startDate} → ${endDate}` : startDate
   return ps.length > 1 ? `${dateStr} 等${ps.length}个时间段` : dateStr
 }
 
@@ -158,22 +196,24 @@ const formatStepDesc = (node: LocalNode): string => {
 const timelineEditorVisible = ref(false)
 const editingTimeline = ref<LocalNode[]>([])
 
-const openTimelineEditor = () => {
-  // 深拷贝，避免直接修改 localTimeline
+const initEditingTimeline = () => {
   editingTimeline.value = localTimeline.value.map(n => ({
     ...n,
     periods: n.periods.map(p => ({ ...p })),
   }))
+}
+
+const openTimelineEditor = () => {
+  initEditingTimeline()
   timelineEditorVisible.value = true
 }
 
 const saveTimeline = () => {
-  // 校验：所有时间段必须有开始日期
   for (const node of editingTimeline.value) {
     for (const p of node.periods) {
       if (!p.startDate.trim()) {
         OMessage.warning(`「${node.label}」中存在未填写的开始日期`)
-        return
+        return false
       }
     }
   }
@@ -181,8 +221,7 @@ const saveTimeline = () => {
     ...n,
     periods: n.periods.map(p => ({ ...p })),
   }))
-  timelineEditorVisible.value = false
-  OMessage.success('时间计划已保存')
+  return true
 }
 
 // 在草稿中新增时间段（仅开发/测试动态节点）
@@ -213,6 +252,17 @@ const pipelineTasks = computed(() => {
     ...MOCK_PIPELINE_TASKS.filter(t => t.projectId === selectedProjectId.value),
   ]
 })
+
+// 分页相关
+const pipelinePageSize = 10
+const pipelineCurrentPage = ref(1)
+const pagedPipelineTasks = computed(() => {
+  const start = (pipelineCurrentPage.value - 1) * pipelinePageSize
+  return pipelineTasks.value.slice(start, start + pipelinePageSize)
+})
+const onPipelinePageChange = (val: { page: number }) => {
+  pipelineCurrentPage.value = val.page
+}
 const pipelineTableMinWidth = computed(() => {
   const cols = pipelineColumns.value
   const w = cols.reduce((sum, c) => sum + (parseInt(c.style?.width || c.style?.minWidth || '100', 10)), 0)
@@ -220,20 +270,27 @@ const pipelineTableMinWidth = computed(() => {
 })
 
 const pipelineColumns = computed(() => [
-  { label: t('pipeline.colTaskId'),                                   key: 'taskId' },
-  { label: t('pipeline.colStatus'),                                   key: 'pipelineStatus', style: { width: '100px', minWidth: '100px' } },
-  { label: t('pipeline.colTest'),                                     key: 'testStatus' },
-  { label: '软件包下载地址',                                            key: 'packageDownloadUrl' },
-  { label: 'ISO下载地址',                                              key: 'isoDownloadUrl' },
-  { label: t('pipeline.colStart'),     key: 'startedAt' },
-  { label: t('pipeline.colEnd'),       key: 'endedAt' },
-  { label: t('pipeline.colDuration'),  key: 'duration', style: { width: '80px', minWidth: '80px' } },
-  { label: t('pipeline.colExecutor'),  key: 'executor' },
-  { label: t('pipeline.colAction'),    key: 'action' },
+  { label: t('pipeline.colTaskId'), key: 'taskId', style: { width: '130px', minWidth: '130px' } },
+  { label: t('pipeline.colStatus'), key: 'pipelineStatus', style: { width: '100px', minWidth: '100px' } },
+  { label: t('pipeline.colTest'), key: 'testStatus', style: { width: '100px', minWidth: '100px' } },
+  { label: '软件包下载地址', key: 'packageDownloadUrl', style: { width: '220px', minWidth: '220px' } },
+  { label: 'ISO下载地址', key: 'isoDownloadUrl', style: { width: '220px', minWidth: '220px' } },
+  { label: t('pipeline.colStart'), key: 'startedAt', style: { width: '130px', minWidth: '130px' } },
+  { label: t('pipeline.colEnd'), key: 'endedAt', style: { width: '130px', minWidth: '130px' } },
+  { label: t('pipeline.colDuration'), key: 'duration', style: { width: '80px', minWidth: '80px' } },
+  { label: t('pipeline.colExecutor'), key: 'executor', style: { width: '100px', minWidth: '100px' } },
+  { label: t('pipeline.colAction'), key: 'action', style: { width: '120px', minWidth: '120px' } },
 ])
 const pipelineStatusColor = (s: PipelineStatus | string) => {
   const m: Record<string, string> = { success: 'success', failed: 'danger', running: 'warning', pending: 'info', cancelled: 'info' }
   return m[s] ?? 'info'
+}
+const formatDateTime = (dt: string | null | undefined): { date: string; time: string } => {
+  if (!dt) return { date: '—', time: '' }
+  const [datePart, timePart] = dt.split(' ')
+  const parts = datePart.split('.')
+  const date = `${parts[0]}/${String(parts[1]).padStart(2, '0')}/${String(parts[2]).padStart(2, '0')}`
+  return { date, time: timePart ?? '' }
 }
 const pipelineStatusLabel = (s: string) => {
   const m: Record<string, string> = {
@@ -320,16 +377,17 @@ const dialogCaseColumns = computed(() => {
     { label: '', key: 'select', style: { width: '72px', minWidth: '72px' } },
     { label: '名称', key: 'name', style: { width: '140px', minWidth: '140px' } },
     { label: '编号', key: 'testId', style: { width: '140px', minWidth: '140px' } },
+    { label: '唯一标识符', key: 'mainKey', style: { width: '110px', minWidth: '110px' } },
     { label: '级别', key: 'level', style: { width: '100px', minWidth: '100px' } },
     { label: '预置条件', key: 'precondition', style: { width: '200px', minWidth: '200px' } },
     { label: '测试步骤', key: 'testSteps', style: { width: '200px', minWidth: '200px' } },
     { label: '预期结果', key: 'expectedResult', style: { width: '180px', minWidth: '180px' } },
     { label: '自动化脚本/路径', key: 'automationScript', style: { width: '240px', minWidth: '240px' } },
-    { label: '最后一次执行结果', key: 'lastExecResult', style: { width: '120px', minWidth: '120px' } },
-    { label: '用例模块', key: 'testCaseModule', style: { width: '80px', minWidth: '80px' } },
-    { label: '最后执行人', key: 'lastExecutor', style: { width: '100px', minWidth: '100px' } },
-    { label: '测试类型', key: 'testType', style: { width: '80px', minWidth: '80px' } },
-    { label: '自动化类型', key: 'isAutomated', style: { width: '90px', minWidth: '90px' } },
+    { label: '最后一次执行结果', key: 'lastExecResult', style: { width: '160px', minWidth: '160px' } },
+    { label: '用例模块', key: 'testCaseModule', style: { width: '100px', minWidth: '100px' } },
+    { label: '最后执行人', key: 'lastExecutor', style: { width: '120px', minWidth: '120px' } },
+    { label: '测试类型', key: 'testType', style: { width: '100px', minWidth: '100px' } },
+    { label: '自动化类型', key: 'isAutomated', style: { width: '120px', minWidth: '120px' } },
   ]
 })
 
@@ -497,6 +555,12 @@ const handleBuildUpload = async () => { await new Promise(r => setTimeout(r, 600
 // ─── 新增项目弹窗 ─────────────────────────────────────────────────────────────
 // 包含项目概览所有字段，除"项目ID"（ID由系统自动生成）
 
+interface TimelinePeriod {
+  id: string
+  startDate: string
+  endDate: string
+}
+
 interface AddProjectForm {
   // 基本信息
   name: string
@@ -512,12 +576,10 @@ interface AddProjectForm {
   // 硬件规格
   productVersion: string
   cpuArch: string
-  // 时间计划（每个阶段的开始/结束日期）
+  // 时间计划（每个阶段的时间段数组）
   startDate: string
-  devStartDate: string
-  devEndDate: string
-  testStartDate: string
-  testEndDate: string
+  devPeriods: TimelinePeriod[]
+  testPeriods: TimelinePeriod[]
   deliverDate: string
 }
 
@@ -527,8 +589,10 @@ const EMPTY_PROJECT: AddProjectForm = {
   targetRepo: '',
   pipelineId: '', pipelineName: '',
   productVersion: '950', cpuArch: 'x86_64',
-  startDate: '', devStartDate: '', devEndDate: '',
-  testStartDate: '', testEndDate: '', deliverDate: '',
+  startDate: '',
+  devPeriods: [{ id: 'dev-p0', startDate: '', endDate: '' }],
+  testPeriods: [{ id: 'test-p0', startDate: '', endDate: '' }],
+  deliverDate: '',
 }
 
 const addProjectDialog = reactive({
@@ -537,7 +601,11 @@ const addProjectDialog = reactive({
 })
 
 const openAddProjectDialog = () => {
-  Object.assign(addProjectDialog.form, { ...EMPTY_PROJECT })
+  addProjectDialog.form = {
+    ...EMPTY_PROJECT,
+    devPeriods: [{ id: 'dev-p0', startDate: '', endDate: '' }],
+    testPeriods: [{ id: 'test-p0', startDate: '', endDate: '' }],
+  }
   addProjectDialog.visible = true
 }
 
@@ -545,6 +613,22 @@ const handleAddProjectConfirm = () => {
   if (!addProjectDialog.form.name.trim()) { OMessage.warning('项目名称不能为空'); return }
   if (!addProjectDialog.form.owner.trim()) { OMessage.warning('负责人不能为空'); return }
   if (!addProjectDialog.form.targetRepo.trim()) { OMessage.warning('目标仓库不能为空'); return }
+  if (!addProjectDialog.form.startDate.trim()) { OMessage.warning('启动开始日期不能为空'); return }
+  
+  // 验证开发时间段
+  for (const period of addProjectDialog.form.devPeriods) {
+    if (!period.startDate.trim()) { OMessage.warning('开发开始日期不能为空'); return }
+    if (!period.endDate.trim()) { OMessage.warning('开发结束日期不能为空'); return }
+  }
+  
+  // 验证测试时间段
+  for (const period of addProjectDialog.form.testPeriods) {
+    if (!period.startDate.trim()) { OMessage.warning('测试开始日期不能为空'); return }
+    if (!period.endDate.trim()) { OMessage.warning('测试结束日期不能为空'); return }
+  }
+  
+  if (!addProjectDialog.form.deliverDate.trim()) { OMessage.warning('交付开始日期不能为空'); return }
+  
   OMessage.success(`项目「${addProjectDialog.form.name}」创建成功`)
   addProjectDialog.visible = false
 }
@@ -562,7 +646,7 @@ const handleAddProjectConfirm = () => {
         <OTag :color="projStatusColor" size="medium" class="proj-detail__status-tag">{{ project?.status }}</OTag>
       </div>
       <div class="proj-detail__selector-right">
-        <OButton variant="outline" size="medium" round="pill">{{ t('project.generateReport') }}</OButton>
+        <OButton variant="outline" color="primary" size="medium" round="pill" @click="openReportDialog">{{ t('project.generateReport') }}</OButton>
         <OButton v-if="isAdmin" variant="solid" color="primary" size="medium" round="pill" @click="openAddProjectDialog">{{ t('project.create') }}</OButton>
       </div>
     </div>
@@ -571,14 +655,16 @@ const handleAddProjectConfirm = () => {
     <OTab v-model="activeTab">
       <!-- ── Tab 1: Overview ── -->
       <OTabPane value="overview" :label="t('project.overview')">
+        <!-- 概览区统一操作栏 -->
+        <div class="proj-detail__overview-bar">
+          <OButton v-if="isAdmin" variant="outline" color="primary" size="medium" round="pill" @click="openEditDialog">编辑</OButton>
+        </div>
         <div class="proj-detail__overview">
           <!-- Left: basic info -->
           <OCard class="proj-detail__form-card">
             <div class="proj-detail__section-title">
               <span class="proj-detail__section-bar" />
               {{ t('project.basicInfo') }}
-              <OTag :color="projStatusColor" size="medium">{{ project?.status }}</OTag>
-              <OButton v-if="isAdmin" variant="outline" size="medium" round="pill" style="margin-left: auto" @click="openEditDialog">编辑</OButton>
             </div>
 
             <ODivider darker />
@@ -592,10 +678,6 @@ const handleAddProjectConfirm = () => {
                 <label class="proj-detail__info-label">{{ t('project.idField') }}</label>
                 <span class="proj-detail__info-value">{{ project?.projectId || '—' }}</span>
               </div>
-              <div class="proj-detail__info-field proj-detail__info-field--full">
-                <label class="proj-detail__info-label">{{ t('project.descField') }}</label>
-                <span class="proj-detail__info-value">{{ project?.description || '—' }}</span>
-              </div>
               <div class="proj-detail__info-field">
                 <label class="proj-detail__info-label">{{ t('project.kernelVersion') }}</label>
                 <span class="proj-detail__info-value">{{ project?.kernelVersion || '—' }}</span>
@@ -603,10 +685,6 @@ const handleAddProjectConfirm = () => {
               <div class="proj-detail__info-field">
                 <label class="proj-detail__info-label">{{ t('project.osVersion') }}</label>
                 <span class="proj-detail__info-value">{{ project?.osVersion || '—' }}</span>
-              </div>
-              <div class="proj-detail__info-field">
-                <label class="proj-detail__info-label">{{ t('project.statusField') }}</label>
-                <span class="proj-detail__info-value"><OTag :color="projStatusColor" size="medium">{{ project?.status }}</OTag></span>
               </div>
               <div class="proj-detail__info-field">
                 <label class="proj-detail__info-label">{{ t('project.ownerField') }}</label>
@@ -617,14 +695,6 @@ const handleAddProjectConfirm = () => {
                 <span class="proj-detail__info-value">{{ project?.productVersions[0] || '—' }}</span>
               </div>
               <div class="proj-detail__info-field">
-                <label class="proj-detail__info-label">{{ t('project.cpuArch') }}</label>
-                <span class="proj-detail__info-value">{{ project?.cpuArch || '—' }}</span>
-              </div>
-              <div class="proj-detail__info-field proj-detail__info-field--full">
-                <label class="proj-detail__info-label">目标仓库</label>
-                <span class="proj-detail__info-value proj-detail__info-value--link">{{ project?.targetRepo || '—' }}</span>
-              </div>
-              <div class="proj-detail__info-field">
                 <label class="proj-detail__info-label">流水线ID</label>
                 <span class="proj-detail__info-value">{{ project?.pipelineId || '—' }}</span>
               </div>
@@ -632,22 +702,39 @@ const handleAddProjectConfirm = () => {
                 <label class="proj-detail__info-label">流水线名称</label>
                 <span class="proj-detail__info-value">{{ project?.pipelineName || '—' }}</span>
               </div>
+              <div class="proj-detail__info-field">
+                <label class="proj-detail__info-label">{{ t('project.cpuArch') }}</label>
+                <span class="proj-detail__info-value">{{ project?.cpuArch || '—' }}</span>
+              </div>
+              <div class="proj-detail__info-field proj-detail__info-field--full">
+                <label class="proj-detail__info-label">{{ t('project.descField') }}</label>
+                <span class="proj-detail__info-value">{{ project?.description || '—' }}</span>
+              </div>
+              <div class="proj-detail__info-field proj-detail__info-field--full">
+                <label class="proj-detail__info-label">目标仓库</label>
+                <OLink v-if="project?.targetRepo" color="primary" :href="project.targetRepo" target="_blank" class="proj-detail__external-link">
+                  {{ project.targetRepo }}
+                  <template #suffix>
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M10 2H14V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M14 2L9 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M13 9V13C13 13.5304 12.7893 14.0391 12.4142 14.4142C12.0391 14.7893 11.5304 15 11 15H3C2.46957 15 1.96086 14.7893 1.58579 14.4142C1.21071 14.0391 1 13.5304 1 13V5C1 4.46957 1.21071 3.96086 1.58579 3.58579C1.96086 3.21071 2.46957 3 3 3H7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </template>
+                </OLink>
+                <span v-else class="proj-detail__info-value">—</span>
+              </div>
             </div>
           </OCard>
-        </div>
 
-        <!-- Timeline -->
-        <OCard class="proj-detail__timeline-card">
-          <div class="proj-detail__timeline-header">
-            <div class="proj-detail__section-title">
-              <span class="proj-detail__section-bar" />
-              {{ t('project.timeline') }}
+          <!-- Timeline -->
+          <OCard class="proj-detail__timeline-card">
+            <div class="proj-detail__timeline-header">
+              <div class="proj-detail__section-title">
+                <span class="proj-detail__section-bar" />
+                {{ t('project.timeline') }}
+              </div>
             </div>
-            <!-- 「编辑」按钮：打开统一时间计划编辑弹窗 -->
-            <OButton v-if="isAdmin" variant="outline" size="medium" round="pill" @click="openTimelineEditor">
-              编辑
-            </OButton>
-          </div>
 
           <ODivider darker />
 
@@ -663,14 +750,15 @@ const handleAddProjectConfirm = () => {
               <OStepItem
                 v-for="(node, idx) in localTimeline"
                 :key="node.id"
-                :step-index="idx + 1"
+                :step-index="idx"
                 :title="node.label"
                 :description="formatStepDesc(node)"
                 :status="mapStepStatus(node.status)"
               />
             </OStep>
           </div>
-        </OCard>
+          </OCard>
+        </div>
       </OTabPane>
 
       <!-- ── Tab 2: Patches ── -->
@@ -751,7 +839,7 @@ const handleAddProjectConfirm = () => {
               <span class="pl-execute__case-count">
                 已选 <strong>{{ dialogSelectedIds.length }}</strong> / {{ dialogCases.length }} 个用例（默认全选该项目对应的所有用例）
               </span>
-              <OButton variant="outline" size="small" round="pill" @click="caseEditDialog.visible = true">编辑</OButton>
+              <OButton variant="outline" color="primary" size="small" round="pill" @click="caseEditDialog.visible = true">编辑</OButton>
             </div>
 
             <div class="pl-execute__case-summary">
@@ -767,7 +855,7 @@ const handleAddProjectConfirm = () => {
 
             <!-- 底部操作按钮 -->
             <div class="pl-execute__footer">
-              <OButton variant="outline" size="medium" round="pill" @click="pipelineDialog.visible = false">取消</OButton>
+              <OButton variant="outline" color="primary" size="medium" round="pill" @click="pipelineDialog.visible = false">取消</OButton>
               <OButton variant="solid" color="primary" size="medium" round="pill" @click="executePipeline">执行流水线</OButton>
             </div>
           </div>
@@ -775,136 +863,99 @@ const handleAddProjectConfirm = () => {
           <!-- 流水线历史记录表格 -->
           <h3 class="proj-detail__table-title">流水线历史记录表格</h3>
 
-          <div class="pipeline-table-wrap" :style="{ '--pipeline-table-min-width': pipelineTableMinWidth }">
-          <OTable :columns="pipelineColumns" :data="pipelineTasks">
-            <template #td_pipelineStatus="{ row }">
-              <OTag :color="pipelineStatusColor(row.pipelineStatus)" size="medium">
-                {{ pipelineStatusLabel(row.pipelineStatus) }}
-              </OTag>
-            </template>
-            <template #td_testStatus="{ row }">
-              <div v-if="row.testStatus === 'success'" class="pl-status-cell">
-                <OTag color="success" size="medium">成功</OTag>
-                <a v-if="row.testLink" :href="row.testLink" target="_blank" class="pl-status-link">{{ row.testLink }}</a>
-              </div>
-              <OTag v-else-if="row.testStatus === 'failed'" color="danger" size="medium">失败</OTag>
-              <span v-else class="pl-execute__muted">—</span>
-            </template>
-            <template #td_packageDownloadUrl="{ row }">
-              <a v-if="row.packageDownloadUrl" :href="row.packageDownloadUrl" target="_blank" class="pl-status-link">{{ row.packageDownloadUrl }}</a>
-              <span v-else class="pl-execute__muted">—</span>
-            </template>
-            <template #td_isoDownloadUrl="{ row }">
-              <a v-if="row.isoDownloadUrl" :href="row.isoDownloadUrl" target="_blank" class="pl-status-link">{{ row.isoDownloadUrl }}</a>
-              <span v-else class="pl-execute__muted">—</span>
-            </template>
-            <template #td_endedAt="{ row }">{{ row.endedAt ?? t('misc.dash') }}</template>
-            <template #td_duration="{ row }">{{ row.duration ?? t('misc.dash') }}</template>
-            <template #td_action="{ row }">
-              <OButton variant="outline" color="primary" size="small" round="pill" :disabled="row.pipelineStatus !== 'failed'" @click="retryPipeline(row)">{{ t('pipeline.retry') }}</OButton>
-            </template>
-          </OTable>
+          <div class="pipeline-table-container">
+            <div class="pipeline-table-wrap" :style="{ '--pipeline-table-min-width': pipelineTableMinWidth, 'max-height': '600px' }">
+            <OTable :columns="pipelineColumns" :data="pagedPipelineTasks">
+              <template #td_taskId="{ row }">
+                <span class="pipeline-task-id">{{ row.taskId }}</span>
+              </template>
+              <template #td_pipelineStatus="{ row }">
+                <OTag :color="pipelineStatusColor(row.pipelineStatus)" size="medium">
+                  {{ pipelineStatusLabel(row.pipelineStatus) }}
+                </OTag>
+              </template>
+              <template #td_testStatus="{ row }">
+                <div v-if="row.testStatus === 'success'" class="pl-status-cell">
+                  <OTag color="success" size="medium">成功</OTag>
+                  <OLink v-if="row.testLink" color="primary" :href="row.testLink" target="_blank" class="pl-status-link">
+                    {{ row.testLink }}
+                    <template #suffix>
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 2H14V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M14 2L9 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M13 9V13C13 13.5304 12.7893 14.0391 12.4142 14.4142C12.0391 14.7893 11.5304 15 11 15H3C2.46957 15 1.96086 14.7893 1.58579 14.4142C1.21071 14.0391 1 13.5304 1 13V5C1 4.46957 1.21071 3.96086 1.58579 3.58579C1.96086 3.21071 2.46957 3 3 3H7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </template>
+                  </OLink>
+                </div>
+                <OTag v-else-if="row.testStatus === 'failed'" color="danger" size="medium">失败</OTag>
+                <span v-else class="pl-execute__muted">—</span>
+              </template>
+              <template #td_packageDownloadUrl="{ row }">
+                <OLink v-if="row.packageDownloadUrl" color="primary" :href="row.packageDownloadUrl" target="_blank" class="pl-status-link">
+                  {{ row.packageDownloadUrl }}
+                  <template #suffix>
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M10 2H14V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M14 2L9 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M13 9V13C13 13.5304 12.7893 14.0391 12.4142 14.4142C12.0391 14.7893 11.5304 15 11 15H3C2.46957 15 1.96086 14.7893 1.58579 14.4142C1.21071 14.0391 1 13.5304 1 13V5C1 4.46957 1.21071 3.96086 1.58579 3.58579C1.96086 3.21071 2.46957 3 3 3H7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </template>
+                </OLink>
+                <span v-else class="pl-execute__muted">—</span>
+              </template>
+              <template #td_isoDownloadUrl="{ row }">
+                <OLink v-if="row.isoDownloadUrl" color="primary" :href="row.isoDownloadUrl" target="_blank" class="pl-status-link">
+                  {{ row.isoDownloadUrl }}
+                  <template #suffix>
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M10 2H14V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M14 2L9 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M13 9V13C13 13.5304 12.7893 14.0391 12.4142 14.4142C12.0391 14.7893 11.5304 15 11 15H3C2.46957 15 1.96086 14.7893 1.58579 14.4142C1.21071 14.0391 1 13.5304 1 13V5C1 4.46957 1.21071 3.96086 1.58579 3.58579C1.96086 3.21071 2.46957 3 3 3H7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </template>
+                </OLink>
+                <span v-else class="pl-execute__muted">—</span>
+              </template>
+              <template #td_startedAt="{ row }">
+                <div class="pipeline-datetime">
+                  <span class="pipeline-datetime__date">{{ formatDateTime(row.startedAt).date }}</span>
+                  <span class="pipeline-datetime__time">{{ formatDateTime(row.startedAt).time }}</span>
+                </div>
+              </template>
+              <template #td_endedAt="{ row }">
+                <div class="pipeline-datetime">
+                  <span class="pipeline-datetime__date">{{ formatDateTime(row.endedAt).date }}</span>
+                  <span class="pipeline-datetime__time">{{ formatDateTime(row.endedAt).time }}</span>
+                </div>
+              </template>
+              <template #td_duration="{ row }">{{ row.duration ?? t('misc.dash') }}</template>
+              <template #td_action="{ row }">
+                <OButton variant="outline" color="primary" size="small" round="pill" :disabled="row.pipelineStatus !== 'failed'" @click="retryPipeline(row)">{{ t('pipeline.retry') }}</OButton>
+              </template>
+            </OTable>
+            </div>
+            <!-- 分页器 -->
+            <div class="proj-detail__pipeline-pagination">
+              <OPagination
+                :total="pipelineTasks.length"
+                :page="pipelineCurrentPage"
+                :page-size="pipelinePageSize"
+                @change="onPipelinePageChange"
+              />
+            </div>
           </div>
         </div>
       </OTabPane>
     </OTab>
 
-    <!-- ══ 时间计划统一编辑弹窗
-         入口：时间计划卡片右上角「编辑」按钮
-         ODialog size="large"（内容较多，需要足够空间）
-         editingTimeline 为草稿，取消时丢弃，保存时写回 localTimeline
-    ══ -->
-    <ODialog
-      v-model:visible="timelineEditorVisible"
-      title="编辑时间计划"
-      size="large"
-    >
-      <div class="tl-editor">
-        <div
-          v-for="(node, nodeIdx) in editingTimeline"
-          :key="node.id"
-          class="tl-editor__node"
-        >
-          <!-- 节点分隔线（首节点上方不加）-->
-          <ODivider v-if="nodeIdx > 0" darker class="tl-editor__divider" />
-
-          <!-- 节点标题行：名称 + 固定/动态标识 -->
-          <div class="tl-editor__node-header">
-            <div class="tl-editor__node-title">
-              <span class="tl-editor__section-bar" />
-              <span>{{ node.label }}</span>
-              <OTag v-if="node.isFixed" color="info" size="medium" variant="outline">固定节点</OTag>
-              <OTag v-else color="primary" size="medium" variant="outline">可多时段</OTag>
-            </div>
-            <!-- 动态节点：新增时间段按钮 -->
-            <OButton
-              v-if="!node.isFixed"
-              variant="text" color="primary" size="small" round="pill"
-              @click="addEditPeriod(node)"
-            >+ 新增时间段</OButton>
-          </div>
-
-          <!-- 时间段列表 -->
-          <div class="tl-editor__periods">
-            <div
-              v-for="(period, pIdx) in node.periods"
-              :key="period.id"
-              class="tl-editor__period-row"
-            >
-              <!-- 序号（动态节点多时段时显示） -->
-              <span v-if="!node.isFixed" class="tl-editor__period-idx">
-                第{{ pIdx + 1 }}段
-              </span>
-
-              <!-- 开始日期 -->
-              <div class="tl-editor__field">
-                <label class="tl-editor__label">
-                  <span class="tl-editor__required">*</span>开始日期
-                </label>
-                <OInput
-                  v-model="period.startDate"
-                  placeholder="YYYY-MM-DD"
-                  clearable
-                />
-              </div>
-
-              <span class="tl-editor__arrow">→</span>
-
-              <!-- 结束日期 -->
-              <div class="tl-editor__field">
-                <label class="tl-editor__label">结束日期<span class="tl-editor__optional">（可选）</span></label>
-                <OInput
-                  v-model="period.endDate"
-                  placeholder="YYYY-MM-DD"
-                  clearable
-                />
-              </div>
-
-              <!-- 删除按钮：动态节点且有多个时间段才显示 -->
-              <OButton
-                v-if="!node.isFixed && node.periods.length > 1"
-                variant="text" color="danger" size="small" round="pill"
-                class="tl-editor__del-btn"
-                @click="deleteEditPeriod(node, period.id)"
-              >删除</OButton>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="tl-dialog-footer">
-          <OButton variant="outline" size="medium" round="pill"
-            @click="timelineEditorVisible = false">取消</OButton>
-          <OButton variant="solid" color="primary" size="medium" round="pill"
-            @click="saveTimeline">保存</OButton>
-        </div>
-      </template>
-    </ODialog>
-
-    <!-- ══ 编辑基本信息弹窗 ════════════════════════════════════════════════════════ -->
-    <ODialog v-model:visible="editDialog.visible" title="编辑基本信息" size="large">
+    <!-- ══ 编辑项目信息弹窗（基本信息 + 时间计划合并）══════════════════════════ -->
+    <ODialog v-model:visible="editDialog.visible" title="编辑项目信息" size="exlarge">
       <div class="edit-proj-form">
+        <!-- ① 基本信息 -->
+        <div class="edit-proj-form__section-title">
+          <span class="edit-proj-form__bar" />基本信息
+        </div>
         <div class="edit-proj-form__grid">
           <div class="edit-proj-form__field">
             <label class="edit-proj-form__label"><span class="edit-proj-form__required">*</span>项目名称</label>
@@ -966,11 +1017,76 @@ const handleAddProjectConfirm = () => {
             <OInput v-model="editForm.pipelineName" placeholder="例：Kernel编译流水线（非必填）" clearable />
           </div>
         </div>
+
+        <ODivider />
+
+        <!-- ② 时间计划（OStep 步骤条 + 日期编辑） -->
+        <div class="edit-proj-form__section-title">
+          <span class="edit-proj-form__bar" />时间计划
+        </div>
+
+        <div class="edit-timeline-wrap">
+          <OStep direction="h" class="edit-timeline-step">
+            <OStepItem
+              v-for="(node, idx) in editingTimeline"
+              :key="node.id"
+              :step-index="idx"
+              :title="node.label"
+              :status="mapStepStatus(node.status)"
+            />
+          </OStep>
+        </div>
+
+        <div class="edit-tl-cards">
+          <div
+            v-for="(node, nodeIdx) in editingTimeline"
+            :key="node.id"
+            class="edit-tl-card"
+          >
+            <div class="edit-tl-card__header">
+              <div class="edit-tl-card__title">
+                <span>{{ node.label }}</span>
+                <span v-if="!node.isFixed" class="edit-tl-card__multi">可多时段</span>
+              </div>
+              <OButton
+                v-if="!node.isFixed"
+                variant="text" color="primary" size="small"
+                @click="addEditPeriod(node)"
+              >+ 新增时间段</OButton>
+            </div>
+            <ODivider class="edit-tl-card__divider" />
+            <div class="edit-tl-periods">
+              <div
+                v-for="(period, pIdx) in node.periods"
+                :key="period.id"
+                class="edit-tl-period-row"
+              >
+                <div class="edit-tl-field">
+                  <div class="edit-tl-label-row">
+                    <label class="edit-tl-label"><span class="edit-proj-form__required">*</span>开始日期</label>
+                    <span v-if="!node.isFixed" class="edit-tl-period-idx">第{{ pIdx + 1 }}段</span>
+                    <OButton
+                      v-if="!node.isFixed && node.periods.length > 1"
+                      variant="text" color="danger" size="small"
+                      class="edit-tl-del-btn"
+                      @click="deleteEditPeriod(node, period.id)"
+                    >删除</OButton>
+                  </div>
+                  <OInput v-model="period.startDate" placeholder="YYYY/MM/DD" clearable />
+                </div>
+                <div v-if="!node.isFixed" class="edit-tl-field">
+                  <label class="edit-tl-label"><span class="edit-proj-form__required">*</span>结束日期</label>
+                  <OInput v-model="period.endDate" placeholder="YYYY/MM/DD" clearable />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <template #footer>
         <div class="edit-proj-footer">
-          <OButton variant="outline" size="medium" round="pill" @click="editDialog.visible = false">取消</OButton>
+          <OButton variant="outline" color="primary" size="medium" round="pill" @click="editDialog.visible = false">取消</OButton>
           <OButton variant="solid" color="primary" size="medium" round="pill" @click="handleEditConfirm">保存</OButton>
         </div>
       </template>
@@ -990,19 +1106,19 @@ const handleAddProjectConfirm = () => {
         </div>
 
         <div class="pl-dialog__filter">
-          <OSelect v-model="dialogFilter.level" placeholder="用例级别" variant="outline" searchable round="pill" size="small"
+          <OSelect v-model="dialogFilter.level" placeholder="用例级别" variant="outline" searchable size="medium"
             class="pl-dialog__filter-sel" @change="dialogPage = 1">
             <OOption v-for="o in dialogLevelOptions" :key="o.value" :value="o.value" :label="o.label" />
           </OSelect>
-          <OSelect v-model="dialogFilter.testType" placeholder="测试类型" variant="outline" searchable round="pill" size="small"
+          <OSelect v-model="dialogFilter.testType" placeholder="测试类型" variant="outline" searchable size="medium"
             class="pl-dialog__filter-sel" @change="dialogPage = 1">
             <OOption v-for="o in dialogTypeOptions" :key="o.value" :value="o.value" :label="o.label" />
           </OSelect>
-          <OSelect v-model="dialogFilter.autoStatus" placeholder="自动化类型" variant="outline" searchable round="pill" size="small"
+          <OSelect v-model="dialogFilter.autoStatus" placeholder="自动化类型" variant="outline" searchable size="medium"
             class="pl-dialog__filter-sel" @change="dialogPage = 1">
             <OOption v-for="o in dialogAutoOptions" :key="o.value" :value="o.value" :label="o.label" />
           </OSelect>
-          <OSelect v-model="dialogFilter.execResult" placeholder="用例执行结果" variant="outline" searchable round="pill" size="small"
+          <OSelect v-model="dialogFilter.execResult" placeholder="用例执行结果" variant="outline" searchable size="medium"
             class="pl-dialog__filter-sel pl-dialog__filter-sel--wide" @change="dialogPage = 1">
             <OOption v-for="o in dialogResultOptions" :key="o.value" :value="o.value" :label="o.label" />
           </OSelect>
@@ -1022,6 +1138,9 @@ const handleAddProjectConfirm = () => {
             </template>
             <template #td_testId="{ row }">
               <span class="pl-dialog__cell-id">{{ row.testId }}</span>
+            </template>
+            <template #td_mainKey="{ row }">
+              <span class="pl-dialog__cell-id">{{ row.mainKey }}</span>
             </template>
             <template #td_level="{ row }">
               <OTag color="info" size="medium" variant="outline">{{ row.level }}</OTag>
@@ -1072,7 +1191,7 @@ const handleAddProjectConfirm = () => {
 
       <template #footer>
         <div class="pl-dialog__footer">
-          <OButton variant="outline" size="medium" round="pill" @click="caseEditDialog.visible = false">确认</OButton>
+          <OButton variant="outline" color="primary" size="medium" round="pill" @click="caseEditDialog.visible = false">确认</OButton>
         </div>
       </template>
     </ODialog>
@@ -1143,7 +1262,7 @@ const handleAddProjectConfirm = () => {
           <span class="pl-dialog__case-count">
             已选 <strong>{{ dialogSelectedIds.length }}</strong> / {{ dialogCases.length }} 个用例（默认全选该项目对应的所有用例）
           </span>
-          <OButton variant="outline" size="small" round="pill" @click="caseEditDialog.visible = true">编辑</OButton>
+          <OButton variant="outline" color="primary" size="small" round="pill" @click="caseEditDialog.visible = true">编辑</OButton>
         </div>
 
         <div class="pl-dialog__case-summary">
@@ -1160,7 +1279,7 @@ const handleAddProjectConfirm = () => {
 
       <template #footer>
         <div class="pl-dialog__footer">
-          <OButton variant="outline" size="medium" round="pill" @click="pipelineDialog.visible = false">取消</OButton>
+          <OButton variant="outline" color="primary" size="medium" round="pill" @click="pipelineDialog.visible = false">取消</OButton>
           <OButton variant="solid" color="primary" size="medium" round="pill" @click="executePipeline">
             执行流水线
           </OButton>
@@ -1266,54 +1385,105 @@ const handleAddProjectConfirm = () => {
 
         <ODivider darker />
 
-        <!-- 时间计划 -->
+        <!-- 时间计划（与编辑弹窗格式一致） -->
         <div class="add-proj-form__section-title">
           <span class="add-proj-form__bar" />时间计划
           <span class="add-proj-form__required">*</span>
-          <span class="add-proj-form__hint">日期格式：YYYY-MM-DD</span>
+          <span class="add-proj-form__hint">日期格式：YYYY/MM/DD</span>
         </div>
-        <div class="add-proj-form__timeline">
+
+        <div class="add-tl-cards">
           <!-- 启动 -->
-          <div class="add-proj-form__timeline-row">
-            <span class="add-proj-form__timeline-label"><span class="add-proj-form__required">*</span>启动</span>
-            <div class="add-proj-form__timeline-dates">
-              <OInput v-model="addProjectDialog.form.startDate"
-                placeholder="开始日期（必填）" clearable class="add-proj-form__date-input" />
+          <div class="add-tl-card">
+            <div class="add-tl-card__header">
+              <div class="add-tl-card__title">
+                <span>启动</span>
+              </div>
             </div>
-            <span class="add-proj-form__timeline-tag add-proj-form__timeline-tag--fixed">固定节点</span>
+            <ODivider class="add-tl-card__divider" />
+            <div class="add-tl-periods">
+              <div class="edit-tl-field">
+                <label class="edit-tl-label"><span class="edit-proj-form__required">*</span>开始日期</label>
+                <OInput v-model="addProjectDialog.form.startDate" placeholder="YYYY/MM/DD" clearable />
+              </div>
+            </div>
           </div>
           <!-- 开发 -->
-          <div class="add-proj-form__timeline-row">
-            <span class="add-proj-form__timeline-label"><span class="add-proj-form__required">*</span>开发</span>
-            <div class="add-proj-form__timeline-dates">
-              <OInput v-model="addProjectDialog.form.devStartDate"
-                placeholder="开始日期（必填）" clearable class="add-proj-form__date-input" />
-              <span class="add-proj-form__arrow">→</span>
-              <OInput v-model="addProjectDialog.form.devEndDate"
-                placeholder="结束日期（必填）" clearable class="add-proj-form__date-input" />
+          <div class="add-tl-card">
+            <div class="add-tl-card__header">
+              <div class="add-tl-card__title">
+                <span>开发</span>
+                <span class="edit-tl-card__multi">可多时段</span>
+              </div>
+              <OButton variant="text" color="primary" size="small" @click="addProjectDialog.form.devPeriods.push({ id: `dev-p${Date.now()}`, startDate: '', endDate: '' })">
+                + 新增时间段
+              </OButton>
             </div>
-            <span class="add-proj-form__timeline-tag add-proj-form__timeline-tag--flex">可多时段</span>
+            <ODivider class="add-tl-card__divider" />
+            <div class="add-tl-periods">
+              <div v-for="(period, idx) in addProjectDialog.form.devPeriods" :key="period.id" class="edit-tl-period-row">
+                <div class="edit-tl-field">
+                  <div class="edit-tl-label-row">
+                    <label class="edit-tl-label"><span class="edit-proj-form__required">*</span>开始日期</label>
+                    <span class="edit-tl-period-idx">第{{ idx + 1 }}段</span>
+                    <OButton v-if="addProjectDialog.form.devPeriods.length > 1" variant="text" color="danger" size="small" class="edit-tl-del-btn" @click="addProjectDialog.form.devPeriods.splice(idx, 1)">
+                      删除
+                    </OButton>
+                  </div>
+                  <OInput v-model="period.startDate" placeholder="YYYY/MM/DD" clearable />
+                </div>
+                <div class="edit-tl-field">
+                  <label class="edit-tl-label"><span class="edit-proj-form__required">*</span>结束日期</label>
+                  <OInput v-model="period.endDate" placeholder="YYYY/MM/DD" clearable />
+                </div>
+              </div>
+            </div>
           </div>
           <!-- 测试 -->
-          <div class="add-proj-form__timeline-row">
-            <span class="add-proj-form__timeline-label"><span class="add-proj-form__required">*</span>测试</span>
-            <div class="add-proj-form__timeline-dates">
-              <OInput v-model="addProjectDialog.form.testStartDate"
-                placeholder="开始日期（必填）" clearable class="add-proj-form__date-input" />
-              <span class="add-proj-form__arrow">→</span>
-              <OInput v-model="addProjectDialog.form.testEndDate"
-                placeholder="结束日期（必填）" clearable class="add-proj-form__date-input" />
+          <div class="add-tl-card">
+            <div class="add-tl-card__header">
+              <div class="add-tl-card__title">
+                <span>测试</span>
+                <span class="edit-tl-card__multi">可多时段</span>
+              </div>
+              <OButton variant="text" color="primary" size="small" @click="addProjectDialog.form.testPeriods.push({ id: `test-p${Date.now()}`, startDate: '', endDate: '' })">
+                + 新增时间段
+              </OButton>
             </div>
-            <span class="add-proj-form__timeline-tag add-proj-form__timeline-tag--flex">可多时段</span>
+            <ODivider class="add-tl-card__divider" />
+            <div class="add-tl-periods">
+              <div v-for="(period, idx) in addProjectDialog.form.testPeriods" :key="period.id" class="edit-tl-period-row">
+                <div class="edit-tl-field">
+                  <div class="edit-tl-label-row">
+                    <label class="edit-tl-label"><span class="edit-proj-form__required">*</span>开始日期</label>
+                    <span class="edit-tl-period-idx">第{{ idx + 1 }}段</span>
+                    <OButton v-if="addProjectDialog.form.testPeriods.length > 1" variant="text" color="danger" size="small" class="edit-tl-del-btn" @click="addProjectDialog.form.testPeriods.splice(idx, 1)">
+                      删除
+                    </OButton>
+                  </div>
+                  <OInput v-model="period.startDate" placeholder="YYYY/MM/DD" clearable />
+                </div>
+                <div class="edit-tl-field">
+                  <label class="edit-tl-label"><span class="edit-proj-form__required">*</span>结束日期</label>
+                  <OInput v-model="period.endDate" placeholder="YYYY/MM/DD" clearable />
+                </div>
+              </div>
+            </div>
           </div>
           <!-- 交付 -->
-          <div class="add-proj-form__timeline-row">
-            <span class="add-proj-form__timeline-label"><span class="add-proj-form__required">*</span>交付</span>
-            <div class="add-proj-form__timeline-dates">
-              <OInput v-model="addProjectDialog.form.deliverDate"
-                placeholder="开始日期（必填）" clearable class="add-proj-form__date-input" />
+          <div class="add-tl-card">
+            <div class="add-tl-card__header">
+              <div class="add-tl-card__title">
+                <span>交付</span>
+              </div>
             </div>
-            <span class="add-proj-form__timeline-tag add-proj-form__timeline-tag--fixed">固定节点</span>
+            <ODivider class="add-tl-card__divider" />
+            <div class="add-tl-periods">
+              <div class="edit-tl-field">
+                <label class="edit-tl-label"><span class="edit-proj-form__required">*</span>开始日期</label>
+                <OInput v-model="addProjectDialog.form.deliverDate" placeholder="YYYY/MM/DD" clearable />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1321,8 +1491,110 @@ const handleAddProjectConfirm = () => {
 
       <template #footer>
         <div class="add-proj-footer">
-          <OButton variant="outline" size="medium" round="pill" @click="addProjectDialog.visible = false">取消</OButton>
+          <OButton variant="outline" color="primary" size="medium" round="pill" @click="addProjectDialog.visible = false">取消</OButton>
           <OButton variant="solid" color="primary" size="medium" round="pill" @click="handleAddProjectConfirm">确认创建</OButton>
+        </div>
+      </template>
+    </ODialog>
+
+    <!-- ══ 出口评审报告弹窗 ════════════════════════════════════════════════════════ -->
+    <ODialog v-model:visible="reportDialog.visible" title="出口评审报告" size="large">
+      <div class="report-dialog">
+        <!-- 基本信息 -->
+        <div class="report-dialog__section">
+          <div class="report-dialog__section-title">
+            <span class="report-dialog__bar" />基本信息
+          </div>
+          <div class="report-dialog__info-grid">
+            <div class="report-dialog__info-item">
+              <span class="report-dialog__info-label">项目名称</span>
+              <span class="report-dialog__info-value">{{ project?.name || '—' }}</span>
+            </div>
+            <div class="report-dialog__info-item">
+              <span class="report-dialog__info-label">客户</span>
+              <span class="report-dialog__info-value">{{ project?.customer || '—' }}</span>
+            </div>
+            <div class="report-dialog__info-item">
+              <span class="report-dialog__info-label">硬件</span>
+              <span class="report-dialog__info-value">{{ project?.cpuArch || '—' }}</span>
+            </div>
+            <div class="report-dialog__info-item">
+              <span class="report-dialog__info-label">OS版本</span>
+              <span class="report-dialog__info-value">{{ project?.osVersion || '—' }}</span>
+            </div>
+            <div class="report-dialog__info-item">
+              <span class="report-dialog__info-label">内核版本</span>
+              <span class="report-dialog__info-value">{{ project?.kernelVersion || '—' }}</span>
+            </div>
+            <div class="report-dialog__info-item">
+              <span class="report-dialog__info-label">项目状态</span>
+              <OTag :color="projStatusColor" size="medium">{{ project?.status || '—' }}</OTag>
+            </div>
+          </div>
+        </div>
+
+        <ODivider />
+
+        <!-- 补丁统计 -->
+        <div class="report-dialog__section">
+          <div class="report-dialog__section-title">
+            <span class="report-dialog__bar" />补丁统计
+          </div>
+          <div class="report-dialog__stats-grid">
+            <div class="report-dialog__stat-card">
+              <span class="report-dialog__stat-value">{{ patchStats.total }}</span>
+              <span class="report-dialog__stat-label">总数</span>
+            </div>
+            <div class="report-dialog__stat-card report-dialog__stat-card--success">
+              <span class="report-dialog__stat-value">{{ patchStats.merged }}</span>
+              <span class="report-dialog__stat-label">已合入</span>
+            </div>
+            <div class="report-dialog__stat-card report-dialog__stat-card--warning">
+              <span class="report-dialog__stat-value">{{ patchStats.pending }}</span>
+              <span class="report-dialog__stat-label">待处理</span>
+            </div>
+            <div class="report-dialog__stat-card report-dialog__stat-card--danger">
+              <span class="report-dialog__stat-value">{{ patchStats.conflict }}</span>
+              <span class="report-dialog__stat-label">冲突</span>
+            </div>
+          </div>
+        </div>
+
+        <ODivider />
+
+        <!-- 用例统计 -->
+        <div class="report-dialog__section">
+          <div class="report-dialog__section-title">
+            <span class="report-dialog__bar" />用例统计
+          </div>
+          <div class="report-dialog__stats-grid">
+            <div class="report-dialog__stat-card">
+              <span class="report-dialog__stat-value">{{ testCaseStats.total }}</span>
+              <span class="report-dialog__stat-label">总数</span>
+            </div>
+            <div class="report-dialog__stat-card report-dialog__stat-card--success">
+              <span class="report-dialog__stat-value">{{ testCaseStats.passed }}</span>
+              <span class="report-dialog__stat-label">通过</span>
+            </div>
+            <div class="report-dialog__stat-card report-dialog__stat-card--danger">
+              <span class="report-dialog__stat-value">{{ testCaseStats.failed }}</span>
+              <span class="report-dialog__stat-label">失败</span>
+            </div>
+            <div class="report-dialog__stat-card report-dialog__stat-card--warning">
+              <span class="report-dialog__stat-value">{{ testCaseStats.blocked }}</span>
+              <span class="report-dialog__stat-label">阻塞</span>
+            </div>
+            <div class="report-dialog__stat-card report-dialog__stat-card--info">
+              <span class="report-dialog__stat-value">{{ testCaseStats.unavailable }}</span>
+              <span class="report-dialog__stat-label">不可用</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="report-dialog__footer">
+          <OButton variant="outline" color="primary" size="medium" round="pill" @click="reportDialog.visible = false">关闭</OButton>
         </div>
       </template>
     </ODialog>
@@ -1373,18 +1645,43 @@ const handleAddProjectConfirm = () => {
   &__selector-right {
     display: flex;
     gap: var(--o-r-gap-3);
+
+    // 按钮 hover 态：描边变实心填充
+    :deep(.o-button--outline) {
+      &:hover {
+        background-color: var(--o-color-primary1) !important;
+        color: var(--o-white) !important;
+        border-color: var(--o-color-primary1) !important;
+      }
+    }
   }
 
   // Overview layout
+  &__overview-bar {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--o-r-gap-5) !important;
+    margin-bottom: var(--o-r-gap-5) !important;
+
+    // 按钮 hover 态：描边变实心填充
+    :deep(.o-button--outline) {
+      &:hover {
+        background-color: var(--o-color-primary1) !important;
+        color: var(--o-white) !important;
+        border-color: var(--o-color-primary1) !important;
+      }
+    }
+  }
+
   &__overview {
     display: flex;
+    flex-direction: column;
     gap: var(--o-r-grid-column-gutter);
     margin-top: var(--o-r-gap-5);
-
-    @media (max-width: 1200px) { flex-direction: column; }
   }
 
   &__form-card { width: 100%; }
+  &__timeline-card { width: 100%; margin-top: 0; }
 
   &__section-title {
     display: flex;
@@ -1506,6 +1803,20 @@ const handleAddProjectConfirm = () => {
     font-weight: var(--o-font_weight-bold);
     color: var(--o-color-info1);
     margin: 0 0 var(--o-r-gap-4) 0;
+  }
+
+  // 流水线表格容器（表格 + 分页器）
+  &__pipeline-table-container {
+    display: flex;
+    flex-direction: column;
+  }
+
+  // 分页器
+  &__pipeline-pagination {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--o-r-gap-4);
+    padding: var(--o-r-gap-3) 0;
   }
 }
 
@@ -1656,97 +1967,6 @@ const handleAddProjectConfirm = () => {
   width: 100%;
 }
 
-// ── 统一时间计划编辑弹窗 ────────────────────────────────────────────────────────
-.tl-editor {
-  display: flex;
-  flex-direction: column;
-
-  &__divider { margin: var(--o-r-gap-5) 0; }
-
-  &__node { display: flex; flex-direction: column; gap: var(--o-r-gap-4); }
-
-  // 节点标题行：节点名 + 标识 Tag + 新增按钮
-  &__node-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  &__node-title {
-    display: flex;
-    align-items: center;
-    gap: var(--o-r-gap-2);
-    color: var(--o-color-info1);
-    font-size: var(--o-r-font_size-h3);
-    line-height: var(--o-r-line_height-h3);
-    font-weight: var(--o-font_weight-bold);
-  }
-
-  // 与页面节title相同的左侧色条
-  &__section-bar {
-    display: inline-block;
-    width: 4px;
-    height: 16px;
-    background-color: var(--o-color-primary1);
-    border-radius: 2px;
-    flex-shrink: 0;
-  }
-
-  // 时间段列表
-  &__periods { display: flex; flex-direction: column; gap: var(--o-r-gap-4); }
-
-  // 单个时间段行：序号 + 开始日期 + 箭头 + 结束日期 + 删除
-  &__period-row {
-    display: flex;
-    align-items: flex-end;
-    gap: var(--o-r-gap-4);
-    flex-wrap: wrap;
-  }
-
-  &__period-idx {
-    color: var(--o-color-info3);
-    font-size: var(--o-r-font_size-tip1);
-    line-height: var(--o-r-line_height-tip1);
-    white-space: nowrap;
-    padding-bottom: 6px; // 与 OInput 底部对齐
-    min-width: 32px;
-  }
-
-  // 日期字段（label + OInput）
-  &__field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--o-r-gap-2);
-    flex: 1;
-    min-width: 160px;
-    max-width: 240px;
-  }
-
-  &__label {
-    color: var(--o-color-info2);
-    font-size: var(--o-r-font_size-tip1);
-    line-height: var(--o-r-line_height-tip1);
-    font-weight: var(--o-font_weight-regular);
-  }
-
-  &__required { color: var(--o-color-danger1); margin-right: var(--o-r-gap-1); }
-  &__optional { color: var(--o-color-info4); font-weight: var(--o-font_weight-regular); margin-left: 4px; }
-
-  // 开始→结束 箭头分隔
-  &__arrow {
-    color: var(--o-color-info4);
-    font-size: var(--o-r-font_size-tip1);
-    padding-bottom: 8px; // 与 OInput 底部视觉对齐
-    flex-shrink: 0;
-  }
-
-  // 删除按钮：右侧，底部对齐
-  &__del-btn {
-    align-self: flex-end;
-    padding-bottom: 4px;
-  }
-}
-
 // ── 弹窗底部（取消 + 保存，右对齐）────────────────────────────────────────────
 .tl-dialog-footer {
   display: flex;
@@ -1862,8 +2082,8 @@ const handleAddProjectConfirm = () => {
     gap: var(--o-r-gap-3);
   }
 
-  &__filter-sel { width: 120px; }
-  &__filter-sel--wide { width: 140px; }
+  &__filter-sel { width: 140px; }
+  &__filter-sel--wide { width: 160px; }
   &__filter-clear {
     font-size: var(--o-r-font_size-tip1);
     color: var(--o-color-info3);
@@ -1872,7 +2092,7 @@ const handleAddProjectConfirm = () => {
   }
 
   // 表格
-  &__table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  &__table-wrap { height: 476px; overflow-x: auto; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
   // ── 表格单元格统一样式（与 pl-execute 保持一致）─────────────────────
   &__cell-name {
@@ -1932,153 +2152,7 @@ const handleAddProjectConfirm = () => {
 }
 
 // ── 新增项目弹窗 ───────────────────────────────────────────────────────────────
-.edit-proj-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--o-r-gap-5);
-
-  &__grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--o-r-gap-4) var(--o-r-grid-column-gutter);
-  }
-
-  &__field {
-    width: calc(50% - var(--o-r-grid-column-gutter) / 2);
-    display: flex; flex-direction: column; gap: var(--o-r-gap-2);
-    &--full { width: 100%; }
-  }
-
-  &__label { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); font-weight: var(--o-font_weight-regular); }
-  &__required { color: var(--o-color-danger1); margin-right: var(--o-r-gap-1); }
-}
-
-.edit-proj-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--o-r-gap-3);
-}
-
-// ── 新增项目弹窗 ───────────────────────────────────────────────────────────────
-.add-proj-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--o-r-gap-5);
-
-  &__section-title {
-    display: flex;
-    align-items: center;
-    gap: var(--o-r-gap-2);
-    color: var(--o-color-info1);
-    font-size: var(--o-r-font_size-h3);
-    font-weight: var(--o-font_weight-bold);
-  }
-
-  &__bar {
-    display: inline-block;
-    width: 4px; height: 16px;
-    background-color: var(--o-color-primary1);
-    border-radius: 2px; flex-shrink: 0;
-  }
-
-  &__hint {
-    margin-left: auto;
-    color: var(--o-color-info4);
-    font-size: var(--o-r-font_size-tip2);
-    font-weight: var(--o-font_weight-regular);
-  }
-
-  // 2列网格
-  &__grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--o-r-gap-4) var(--o-r-grid-column-gutter);
-  }
-
-  &__field {
-    width: calc(50% - var(--o-r-grid-column-gutter) / 2);
-    display: flex;
-    flex-direction: column;
-    gap: var(--o-r-gap-2);
-    &--full { width: 100%; }
-  }
-
-  &__label {
-    color: var(--o-color-info2);
-    font-size: var(--o-r-font_size-tip1);
-    font-weight: var(--o-font_weight-regular);
-  }
-
-  &__required { color: var(--o-color-danger1); margin-right: var(--o-r-gap-1); }
-
-  // 时间计划：每行 = 标签 + 日期输入 + 类型标识
-  &__timeline {
-    display: flex;
-    flex-direction: column;
-    gap: var(--o-r-gap-4);
-  }
-
-  &__timeline-row {
-    display: flex;
-    align-items: center;
-    gap: var(--o-r-gap-4);
-    flex-wrap: nowrap;
-  }
-
-  &__timeline-label {
-    width: 36px;
-    flex-shrink: 0;
-    color: var(--o-color-info1);
-    font-size: var(--o-r-font_size-text1);
-    font-weight: var(--o-font_weight-bold);
-    white-space: nowrap;
-  }
-
-  &__timeline-dates {
-    display: flex;
-    align-items: center;
-    gap: var(--o-r-gap-3);
-    flex: 1;
-    flex-wrap: nowrap;
-    min-width: 0;
-  }
-
-  &__date-input { width: 180px; }
-
-  &__arrow {
-    color: var(--o-color-info4);
-    font-size: var(--o-r-font_size-tip1);
-    flex-shrink: 0;
-  }
-
-  // 节点类型标识
-  &__timeline-tag {
-    flex-shrink: 0;
-    padding: 2px 8px;
-    border-radius: var(--o-radius_control-m);
-    font-size: var(--o-r-font_size-tip2);
-    line-height: var(--o-r-line_height-tip2);
-
-    &--fixed {
-      color: var(--o-color-info3);
-      background-color: var(--o-color-fill3);
-      border: 1px solid var(--o-color-control1);
-    }
-
-    &--flex {
-      color: var(--o-color-primary1);
-      background-color: var(--o-color-primary4-light);
-      border: 1px solid var(--o-color-primary4);
-    }
-  }
-}
-
-// 弹窗底部
-.add-proj-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--o-r-gap-3);
-}
+// ── 弹窗CSS已移至全局 <style> 块（ODialog渲染到body层，scoped不生效）──
 </style>
 
 <!-- 弹窗/执行区内表格横向滚动：OTable 内置 overflow:hidden，必须全局覆盖 -->
@@ -2087,7 +2161,7 @@ const handleAddProjectConfirm = () => {
 .pl-execute__table-wrap .o-table-wrap,
 .pipeline-table-wrap .o-table-wrap {
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 .pl-dialog__table-wrap table,
@@ -2107,6 +2181,7 @@ const handleAddProjectConfirm = () => {
   white-space: normal;
   word-break: break-word;
   padding: 8px 12px;
+  font-size: 12px;
 }
 
 /* 内容列允许折行 */
@@ -2126,6 +2201,15 @@ const handleAddProjectConfirm = () => {
   overflow: visible;
   text-align: left;
 }
+.pipeline-datetime {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.4;
+}
+.pipeline-datetime__date { color: var(--o-color-info1); font-size: var(--o-r-font_size-tip1); white-space: nowrap; }
+.pipeline-datetime__time { color: var(--o-color-info1); font-size: var(--o-r-font_size-tip1); white-space: nowrap; }
+.pipeline-task-id { white-space: nowrap; }
+
 .pl-status-cell {
   display: flex;
   align-items: center;
@@ -2171,5 +2255,471 @@ const handleAddProjectConfirm = () => {
 .proj-detail__form-card .proj-detail__form-footer,
 .proj-detail__hw-card .proj-detail__form-footer {
   margin-top: auto;
+}
+
+/* ── 编辑项目信息弹窗 ── */
+.o-dialog-exlarge .o-dlg-body {
+  overflow: hidden;
+}
+.o-dialog-exlarge .o-dlg-body-content {
+  overflow-y: auto !important;
+  scrollbar-width: auto !important;
+}
+.o-dialog-exlarge .o-dlg-body-content::-webkit-scrollbar {
+  display: initial !important;
+}
+.edit-proj-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-5);
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: var(--o-r-gap-2);
+  padding-bottom: var(--o-r-gap-4);
+}
+.edit-proj-form__section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--o-r-gap-2);
+  color: var(--o-color-info1);
+  font-size: var(--o-r-font_size-text1);
+  font-weight: var(--o-font_weight-bold);
+}
+.edit-proj-form__bar {
+  display: inline-block;
+  width: 4px; height: 16px;
+  background-color: var(--o-color-primary1);
+  border-radius: 2px; flex-shrink: 0;
+}
+.edit-proj-form__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--o-r-gap-4) var(--o-r-grid-column-gutter);
+}
+.edit-proj-form__field {
+  width: calc(50% - var(--o-r-grid-column-gutter) / 2);
+  display: flex; flex-direction: column; gap: var(--o-r-gap-2);
+}
+.edit-proj-form__field--full { width: 100%; }
+.edit-proj-form__label { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); font-weight: var(--o-font_weight-regular); }
+.edit-proj-form__required { color: var(--o-color-danger1); margin-right: var(--o-r-gap-1); }
+
+.edit-proj-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--o-r-gap-3);
+}
+
+/* ─ 编辑弹窗时间计划（OStep 步骤条 + 卡片编辑区） ─ */
+.edit-timeline-wrap {
+  width: 100%;
+  padding: var(--o-r-gap-3) 0;
+}
+.edit-timeline-step {
+  width: 100%;
+}
+/* 连接线颜色统一 */
+.edit-timeline-step :deep(.o-step-line) {
+  background-color: var(--o-color-control4) !important;
+}
+.edit-tl-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--o-r-gap-5);
+  padding-bottom: var(--o-r-gap-6);
+}
+.edit-tl-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-3);
+  min-width: 0;
+  background: var(--o-color-fill2);
+  border-radius: var(--o-r-border_radius-tag);
+  padding: var(--o-r-gap-4);
+  border: 1px solid var(--o-color-control4);
+  margin-bottom: var(--o-r-gap-2);
+}
+.edit-tl-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--o-r-gap-2);
+  flex-wrap: wrap;
+}
+.edit-tl-card__title {
+  display: flex;
+  align-items: center;
+  gap: var(--o-r-gap-2);
+  color: var(--o-color-info1);
+  font-size: var(--o-r-font_size-text1);
+  font-weight: var(--o-font_weight-bold);
+  line-height: var(--o-r-line_height-text1);
+}
+.edit-tl-card__multi {
+  color: var(--o-color-info3);
+  font-size: var(--o-r-font_size-tip2);
+  white-space: nowrap;
+}
+.edit-tl-card__divider { margin: 0; }
+.edit-tl-periods {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-4);
+}
+.edit-tl-period-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-2);
+  padding: var(--o-r-gap-3) 0;
+}
+.edit-tl-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.edit-tl-period-idx {
+  color: var(--o-color-info3);
+  font-size: var(--o-r-font_size-tip2);
+  white-space: nowrap;
+}
+.edit-tl-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-1);
+  width: 100%;
+}
+.edit-tl-label {
+  color: var(--o-color-info3);
+  font-size: var(--o-r-font_size-tip1);
+  font-weight: var(--o-font_weight-regular);
+  line-height: var(--o-r-line_height-tip1);
+  white-space: nowrap;
+}
+.edit-tl-del-btn { flex-shrink: 0; margin-left: auto; }
+
+/* ── 流水线控制台时间计划编辑区（横向步骤条布局） ── */
+.tl-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-5);
+}
+.tl-editor__rail {
+  display: flex;
+  align-items: flex-start;
+  padding: 0 var(--o-r-gap-4);
+}
+.tl-editor__rail-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--o-r-gap-2);
+  flex-shrink: 0;
+  width: 96px;
+}
+.tl-editor__rail-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 100px;
+  flex-shrink: 0;
+}
+.tl-editor__rail-dot--done { background: var(--o-color-success1); }
+.tl-editor__rail-dot--current { background: var(--o-color-primary1); }
+.tl-editor__rail-dot--pending { background: var(--o-color-primary4); }
+.tl-editor__rail-label {
+  font-size: var(--o-r-font_size-text1);
+  line-height: var(--o-r-line_height-text1);
+  white-space: nowrap;
+  text-align: center;
+}
+.tl-editor__rail-label--done { color: var(--o-color-info2); }
+.tl-editor__rail-label--current { color: var(--o-color-primary1); font-weight: var(--o-font_weight-bold); }
+.tl-editor__rail-label--pending { color: var(--o-color-info4); }
+.tl-editor__rail-line {
+  flex: 1;
+  height: 1px;
+  background: var(--o-color-control4);
+  margin-top: 16px;
+  min-width: 24px;
+}
+.tl-editor__rail-line--done { background: var(--o-color-primary1); }
+.tl-editor__cards {
+  display: flex;
+  gap: var(--o-r-gap-5);
+  overflow-x: auto;
+}
+.tl-editor__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-3);
+  min-width: 320px;
+  flex: 1;
+  background: var(--o-color-fill2);
+  border-radius: var(--o-r-border_radius-tag);
+  padding: var(--o-r-gap-4);
+  border: 1px solid var(--o-color-control4);
+}
+.tl-editor__card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--o-r-gap-2);
+  flex-wrap: wrap;
+}
+.tl-editor__card-title {
+  display: flex;
+  align-items: center;
+  gap: var(--o-r-gap-2);
+  color: var(--o-color-info1);
+  font-size: var(--o-r-font_size-text1);
+  font-weight: var(--o-font_weight-bold);
+  line-height: var(--o-r-line_height-text1);
+}
+.tl-editor__card-divider { margin: 0; }
+.tl-editor__periods {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-4);
+}
+.tl-editor__period-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--o-r-gap-2);
+  flex-wrap: wrap;
+}
+.tl-editor__period-idx {
+  color: var(--o-color-info3);
+  font-size: var(--o-r-font_size-tip2);
+  white-space: nowrap;
+  min-width: 48px;
+  line-height: 32px;
+  flex-shrink: 0;
+}
+.tl-editor__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-1);
+  min-width: 140px;
+  flex: 1;
+}
+.tl-editor__label {
+  color: var(--o-color-info3);
+  font-size: var(--o-r-font_size-tip1);
+  font-weight: var(--o-font_weight-regular);
+  line-height: var(--o-r-line_height-tip1);
+  white-space: nowrap;
+}
+.tl-editor__required { color: var(--o-color-danger1); margin-right: var(--o-r-gap-1); }
+.tl-editor__optional { color: var(--o-color-info4); }
+.tl-editor__arrow {
+  color: var(--o-color-info4);
+  font-size: var(--o-r-font_size-text1);
+  align-self: center;
+  line-height: 32px;
+  flex-shrink: 0;
+}
+.tl-editor__del-btn { align-self: flex-end; flex-shrink: 0; }
+
+.tl-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--o-r-gap-3);
+}
+
+/* ── 新增项目弹窗 ── */
+.add-proj-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-5);
+}
+.add-proj-form__section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--o-r-gap-2);
+  color: var(--o-color-info1);
+  font-size: var(--o-r-font_size-h3);
+  font-weight: var(--o-font_weight-bold);
+}
+.add-proj-form__bar {
+  display: inline-block;
+  width: 4px; height: 16px;
+  background-color: var(--o-color-primary1);
+  border-radius: 2px; flex-shrink: 0;
+}
+.add-proj-form__hint {
+  margin-left: auto;
+  color: var(--o-color-info4);
+  font-size: var(--o-r-font_size-tip2);
+  font-weight: var(--o-font_weight-regular);
+}
+.add-proj-form__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--o-r-gap-4) var(--o-r-grid-column-gutter);
+}
+.add-proj-form__field {
+  width: calc(50% - var(--o-r-grid-column-gutter) / 2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-2);
+}
+.add-proj-form__field--full { width: 100%; }
+.add-proj-form__label {
+  color: var(--o-color-info2);
+  font-size: var(--o-r-font_size-tip1);
+  font-weight: var(--o-font_weight-regular);
+}
+.add-proj-form__required { color: var(--o-color-danger1); margin-right: var(--o-r-gap-1); }
+/* 新增项目时间计划卡片（与编辑弹窗一致） */
+.add-tl-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--o-r-gap-5);
+}
+.add-tl-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-3);
+  min-width: 0;
+  background: var(--o-color-fill2);
+  border-radius: var(--o-r-border_radius-tag);
+  padding: var(--o-r-gap-4);
+  border: 1px solid var(--o-color-control4);
+}
+.add-tl-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--o-r-gap-2);
+}
+.add-tl-card__title {
+  display: flex;
+  align-items: center;
+  gap: var(--o-r-gap-2);
+  color: var(--o-color-info1);
+  font-size: var(--o-r-font_size-text1);
+  font-weight: var(--o-font_weight-bold);
+}
+.add-tl-card__divider { margin: 0; }
+.add-tl-periods {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-3);
+}
+
+/* 时间段行样式（与编辑弹窗一致） */
+.edit-tl-period-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-2);
+}
+.edit-tl-label-row {
+  display: flex;
+  align-items: center;
+  gap: var(--o-r-gap-2);
+}
+.edit-tl-period-idx {
+  color: var(--o-color-info3);
+  font-size: var(--o-r-font_size-tip2);
+  white-space: nowrap;
+}
+.edit-tl-del-btn {
+  margin-left: auto;
+}
+
+.add-proj-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--o-r-gap-3);
+}
+
+/* ── 出口评审报告弹窗 ── */
+.report-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-4);
+}
+.report-dialog__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-3);
+}
+.report-dialog__section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--o-r-gap-2);
+  color: var(--o-color-info1);
+  font-size: var(--o-r-font_size-text1);
+  font-weight: var(--o-font_weight-bold);
+}
+.report-dialog__bar {
+  display: inline-block;
+  width: 4px;
+  height: 16px;
+  background-color: var(--o-color-primary1);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.report-dialog__info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--o-r-gap-4);
+}
+.report-dialog__info-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-1);
+}
+.report-dialog__info-label {
+  color: var(--o-color-info3);
+  font-size: var(--o-r-font_size-tip1);
+}
+.report-dialog__info-value {
+  color: var(--o-color-info1);
+  font-size: var(--o-r-font_size-text1);
+}
+.report-dialog__stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--o-r-gap-4);
+}
+.report-dialog__stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--o-r-gap-2);
+  padding: var(--o-r-gap-4) var(--o-r-gap-3);
+  background-color: var(--o-color-fill2);
+  border-radius: var(--o-radius_control-m);
+  border: 1px solid var(--o-color-control4);
+}
+.report-dialog__stat-card--success {
+  background-color: var(--o-color-success4-light);
+  border-color: var(--o-color-success4);
+}
+.report-dialog__stat-card--warning {
+  background-color: var(--o-color-warning4-light);
+  border-color: var(--o-color-warning4);
+}
+.report-dialog__stat-card--danger {
+  background-color: var(--o-color-danger4-light);
+  border-color: var(--o-color-danger4);
+}
+.report-dialog__stat-card--info {
+  background-color: var(--o-color-info4-light);
+  border-color: var(--o-color-info4);
+}
+.report-dialog__stat-value {
+  color: var(--o-color-info1);
+  font-size: var(--o-r-font_size-h2);
+  font-weight: var(--o-font_weight-bold);
+}
+.report-dialog__stat-label {
+  color: var(--o-color-info2);
+  font-size: var(--o-r-font_size-tip1);
+}
+.report-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--o-r-gap-3);
 }
 </style>

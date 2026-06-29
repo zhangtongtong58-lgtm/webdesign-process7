@@ -76,7 +76,7 @@ const statusColor = (status: string) => {
       </OSelect>
       <div class="project-list__btns">
         <OButton variant="solid" color="primary" @click="handleQuery" round="pill">{{ t('action.query') }}</OButton>
-        <OButton variant="outline" @click="handleReset" round="pill">{{ t('action.reset') }}</OButton>
+        <OButton variant="outline" color="primary" @click="handleReset" round="pill">{{ t('action.reset') }}</OButton>
       </div>
       <OButton v-if="isAdmin" variant="solid" color="primary" class="project-list__create" round="pill">
         + {{ t('project.create') }}

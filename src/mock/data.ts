@@ -34,6 +34,7 @@ export interface Project {
   kernelVersion: string
   osVersion: string
   owner: string
+  customer: string
   productVersions: string[]
   cpuArch: string
   targetRepo: string
@@ -103,6 +104,7 @@ export interface TestCase {
   isAutomated: boolean
   suite: string
   // Extended fields
+  mainKey: string                    // 唯一标识符（与补丁看板 mainKey 拉通）
   lastExecResult: LastExecResult  // 最后一次执行结果
   testCaseModule: string            // 用例模块（与补丁看板 patchModule 拉通）
   lastExecutor: string             // 最后执行人
@@ -147,13 +149,13 @@ export const MOCK_PROJECTS: Project[] = [
     memberIds: ['u1', 'u2'], patchCount: 18, testCount: 33, passRate: 94,
     createdAt: '2025-01-15', lastUpdated: '2026-05-30',
     kernelVersion: '5.10', osVersion: 'openEuler 24.03 LTS',
-    owner: '张明', productVersions: ['950'], cpuArch: 'x86_64',
+    owner: '张明', customer: '华为', productVersions: ['950'], cpuArch: 'x86_64',
     targetRepo: 'https://gitcode.com/openeuler/kernel',
     pipelineId: 'PL-001', pipelineName: 'Kernel-5.10 自动编译流水线',
     timeline: [
       { id: 'ts1', label: '启动', status: 'done', startDate: '2025-01-15' },
       { id: 'ts2', label: '开发', status: 'current', startDate: '2025-02-01', endDate: '2025-03-01' },
-      { id: 'ts3', label: '测试', status: 'pending', startDate: '2025-04-01' },
+      { id: 'ts3', label: '测试', status: 'pending', startDate: '2025-04-01', endDate: '2025-05-15' },
       { id: 'ts4', label: '交付', status: 'pending', startDate: '2025-05-30' },
     ],
   },
@@ -164,13 +166,13 @@ export const MOCK_PROJECTS: Project[] = [
     memberIds: ['u1'], patchCount: 6, testCount: 12, passRate: 87,
     createdAt: '2025-03-20', lastUpdated: '2026-05-28',
     kernelVersion: '6.6', osVersion: 'openEuler 24.03 LTS',
-    owner: '张明', productVersions: ['950', '920'], cpuArch: 'aarch64',
+    owner: '张明', customer: '华为', productVersions: ['950', '920'], cpuArch: 'aarch64',
     targetRepo: 'https://gitcode.com/openeuler/network-stack',
     pipelineId: 'PL-002', pipelineName: 'Network-Stack 编译流水线',
     timeline: [
       { id: 'ts1', label: '启动', status: 'done', startDate: '2025-03-20' },
       { id: 'ts2', label: '开发', status: 'current', startDate: '2025-04-01', endDate: '2025-06-01' },
-      { id: 'ts3', label: '测试', status: 'pending', startDate: '2025-07-01' },
+      { id: 'ts3', label: '测试', status: 'pending', startDate: '2025-07-01', endDate: '2025-08-15' },
       { id: 'ts4', label: '交付', status: 'pending', startDate: '2025-08-30' },
     ],
   },
@@ -181,13 +183,13 @@ export const MOCK_PROJECTS: Project[] = [
     memberIds: ['u1', 'u2'], patchCount: 24, testCount: 88, passRate: 98,
     createdAt: '2024-11-05', lastUpdated: '2026-06-01',
     kernelVersion: '5.10', osVersion: 'openEuler 22.03 LTS',
-    owner: '张明', productVersions: ['950'], cpuArch: 'x86_64',
+    owner: '张明', customer: '华为', productVersions: ['950'], cpuArch: 'x86_64',
     targetRepo: 'https://gitcode.com/openeuler/security-hardening',
     pipelineId: '', pipelineName: '',
     timeline: [
       { id: 'ts1', label: '启动', status: 'done', startDate: '2024-11-05' },
       { id: 'ts2', label: '开发', status: 'done', startDate: '2024-12-01', endDate: '2025-02-01' },
-      { id: 'ts3', label: '测试', status: 'current', startDate: '2025-03-01' },
+      { id: 'ts3', label: '测试', status: 'current', startDate: '2025-03-01', endDate: '2025-05-15' },
       { id: 'ts4', label: '交付', status: 'pending', startDate: '2025-05-30' },
     ],
   },
@@ -305,6 +307,7 @@ export const MOCK_TEST_CASES: TestCase[] = [
   {
     id: 'tc1', projectId: 'p1', patchId: 'pa4',
     name: 'DPC中断注册验证', testId: 'PCIE_DPC_FUNC_003',
+    mainKey: '318456:12001',
     level: 'Level 0/1/2/3', suite: 'functional', status: 'pass',
     duration: 0.12, runAt: '2026-05-30 14:22', authorId: 'u2', isAutomated: true,
     precondition: '【测试组网】\n1、单板经PCIe插槽和PCIe接口卡互联；\n2、测试PC经网口和串口访问单板；\n【测试准备】\n1、单板正常启动；2.bios开启DPC',
@@ -316,6 +319,7 @@ export const MOCK_TEST_CASES: TestCase[] = [
   {
     id: 'tc2', projectId: 'p1', patchId: 'pa5',
     name: 'ZIP压缩基准测试', testId: 'ZIP_PERF_BENCH_001',
+    mainKey: '325001:14500',
     level: 'Level 1/2', suite: 'performance', status: 'pass',
     duration: 5.2, runAt: '2026-05-28 10:15', authorId: 'u2', isAutomated: true,
     precondition: '加速卡驱动已加载，ZIP功能正常，测试环境就绪',
@@ -327,6 +331,7 @@ export const MOCK_TEST_CASES: TestCase[] = [
   {
     id: 'tc3', projectId: 'p1', patchId: 'pa1',
     name: 'UACCE设备注册', testId: 'UACCE_FUNC_001',
+    mainKey: '321138:13916',
     level: 'Level 1', suite: 'functional', status: 'pass',
     duration: 0.35, runAt: '2026-05-27 16:00', authorId: 'u1', isAutomated: true,
     precondition: '系统启动正常，驱动加载完成',
@@ -338,6 +343,7 @@ export const MOCK_TEST_CASES: TestCase[] = [
   {
     id: 'tc4', projectId: 'p1', patchId: 'pa2',
     name: 'hash-agg算法UACCE模式验证', testId: 'ZIP_FUNC_002',
+    mainKey: '321139:14005',
     level: 'Level 1/2', suite: 'functional', status: 'fail',
     duration: 1.8, runAt: '2026-06-01 09:30', authorId: 'u2', isAutomated: true,
     errorMessage: 'Expected hash-agg support in UACCE mode 1, got unsupported',
@@ -350,6 +356,7 @@ export const MOCK_TEST_CASES: TestCase[] = [
   {
     id: 'tc5', projectId: 'p1', patchId: 'pa3',
     name: '驱动加载可靠性测试', testId: 'ACC_RELI_001',
+    mainKey: '324123:14218',
     level: 'Level 1', suite: 'reliability', status: 'pass',
     duration: 120.5, runAt: '2026-05-29 08:00', authorId: 'u1', isAutomated: true,
     precondition: '系统正常启动，测试环境已搭建',
@@ -361,6 +368,7 @@ export const MOCK_TEST_CASES: TestCase[] = [
   {
     id: 'tc6', projectId: 'p1', patchId: 'pa4',
     name: 'PCIe兼容性测试-服务器A', testId: 'PCIE_COMPAT_001',
+    mainKey: '318456:12002',
     level: 'Level 2', suite: 'compatibility', status: 'pass',
     duration: 8.0, runAt: '2026-05-31 14:00', authorId: 'u1', isAutomated: false,
     precondition: '目标服务器A已就绪，PCIe设备已安装',
@@ -372,6 +380,7 @@ export const MOCK_TEST_CASES: TestCase[] = [
   {
     id: 'tc7', projectId: 'p1', patchId: 'pa1',
     name: '安全边界访问测试', testId: 'SEC_BOUND_001',
+    mainKey: '321138:13917',
     level: 'Level 1', suite: 'security', status: 'pending',
     duration: 0, runAt: '—', authorId: 'u2', isAutomated: true,
     precondition: '安全测试环境隔离，待执行',
@@ -383,6 +392,7 @@ export const MOCK_TEST_CASES: TestCase[] = [
   {
     id: 'tc7b', projectId: 'p1', patchId: 'pa1',
     name: 'PCIe设备热插拔阻塞测试', testId: 'PCIE_HOT_002',
+    mainKey: '321138:13918',
     level: 'Level 2', suite: 'PCIe', status: 'block',
     duration: 0, runAt: '2026-05-28 09:30', authorId: 'u3', isAutomated: true,
     precondition: 'PCIe热插拔环境就绪，驱动加载阻塞',
@@ -394,6 +404,7 @@ export const MOCK_TEST_CASES: TestCase[] = [
   {
     id: 'tc8', projectId: 'p3', patchId: 'pa6',
     name: 'UACCE注册安全验证', testId: 'SEC_UACCE_001',
+    mainKey: '320001:13000',
     level: 'Level 1', suite: 'security', status: 'pass',
     duration: 0.28, runAt: '2026-05-10 16:05', authorId: 'u1', isAutomated: true,
     precondition: '系统正常启动，安全加固补丁已应用',

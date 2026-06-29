@@ -2,7 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import {
   OButton, OTag, OTable, OPagination, OSelect, OOption,
-  OCheckbox, OLink, OMessage, ODropdown,
+  OCheckbox, OLink, OMessage, ODropdown, ODialog, OInput, OTextarea, ODivider,
 } from '@opensig/opendesign'
 import { useAuth } from '../../composables/useAuth'
 import { MOCK_TEST_CASES, MOCK_PROJECTS, type TestCase } from '../../mock/data'
@@ -79,17 +79,18 @@ const columns = computed(() => {
     { label: '', key: 'select', style: { width: '72px', minWidth: '72px' } },
     { label: '名称', key: 'name', style: { width: '140px', minWidth: '140px' } },
     { label: '编号', key: 'testId', style: { width: '140px', minWidth: '140px' } },
+    { label: '唯一标识符', key: 'mainKey', style: { width: '110px', minWidth: '110px' } },
     { label: '级别', key: 'level', style: { width: '100px', minWidth: '100px' } },
     { label: '预置条件', key: 'precondition', style: { width: '200px', minWidth: '200px' } },
     { label: '测试步骤', key: 'testSteps', style: { width: '200px', minWidth: '200px' } },
     { label: '预期结果', key: 'expectedResult', style: { width: '180px', minWidth: '180px' } },
     { label: '自动化脚本/路径', key: 'automationScript', style: { width: '240px', minWidth: '240px' } },
-    { label: '最后一次执行结果', key: 'lastExecResult', style: { width: '120px', minWidth: '120px' } },
-    { label: '用例模块', key: 'testCaseModule', style: { width: '80px', minWidth: '80px' } },
-    { label: '最后执行人', key: 'lastExecutor', style: { width: '100px', minWidth: '100px' } },
-    { label: '测试类型', key: 'testType', style: { width: '80px', minWidth: '80px' } },
-    { label: '自动化类型', key: 'isAutomated', style: { width: '90px', minWidth: '90px' } },
-    { label: '操作', key: 'action', style: { width: '130px', minWidth: '130px' } },
+    { label: '最后一次执行结果', key: 'lastExecResult', style: { width: '160px', minWidth: '160px' } },
+    { label: '用例模块', key: 'testCaseModule', style: { width: '100px', minWidth: '100px' } },
+    { label: '最后执行人', key: 'lastExecutor', style: { width: '120px', minWidth: '120px' } },
+    { label: '测试类型', key: 'testType', style: { width: '100px', minWidth: '100px' } },
+    { label: '自动化类型', key: 'isAutomated', style: { width: '120px', minWidth: '120px' } },
+    { label: '操作', key: 'action', style: { width: '150px', minWidth: '150px' } },
   ]
 })
 
@@ -123,9 +124,65 @@ const allChecked = computed({
     }
   }
 })
+const batchDeleteDialog = reactive({ visible: false })
+const deleteDialog = reactive({ visible: false, targetId: '', targetName: '' })
+
 const handleBatchDelete = () => {
   if (!selectedIds.value.length) { OMessage.warning('请先选择用例'); return }
-  OMessage.success(`已选 ${selectedIds.value.length} 条用例，批量删除操作已触发`)
+  batchDeleteDialog.visible = true
+}
+
+const confirmBatchDelete = () => {
+  OMessage.success(`已删除 ${selectedIds.value.length} 条用例`)
+  selectedIds.value = []
+  batchDeleteDialog.visible = false
+}
+
+const handleDelete = (row: any) => {
+  deleteDialog.targetId = row.id
+  deleteDialog.targetName = row.name
+  deleteDialog.visible = true
+}
+
+const confirmDelete = () => {
+  OMessage.success(`用例「${deleteDialog.targetName}」已删除`)
+  deleteDialog.visible = false
+}
+
+const editDialog = reactive({
+  visible: false,
+  targetId: '',
+  targetName: '',
+  form: {
+    name: '', testId: '', mainKey: '', level: '',
+    precondition: '', testSteps: '', expectedResult: '',
+    automationScript: '', testCaseModule: '', testType: '', isAutomated: '',
+  } as Record<string, string>,
+})
+
+const handleEdit = (row: any) => {
+  editDialog.targetId = row.id
+  editDialog.targetName = row.name
+  Object.assign(editDialog.form, {
+    name: row.name ?? '',
+    testId: row.testId ?? '',
+    mainKey: row.mainKey ?? '',
+    level: row.level ?? '',
+    precondition: row.precondition ?? '',
+    testSteps: row.testSteps ?? '',
+    expectedResult: row.expectedResult ?? '',
+    automationScript: row.automationScript ?? '',
+    testCaseModule: row.testCaseModule ?? '',
+    testType: row.testType ?? '',
+    isAutomated: String(row.isAutomated) ?? '',
+  })
+  editDialog.visible = true
+}
+
+const handleEditConfirm = () => {
+  if (!editDialog.form.name.trim()) { OMessage.warning('用例名称不能为空'); return }
+  OMessage.success(`用例「${editDialog.targetName}」已更新`)
+  editDialog.visible = false
 }
 
 // ─── 导入弹窗 ────────────────────────────────────────────────────────────────
@@ -181,9 +238,9 @@ const handleExport = (type: 'all' | 'selected') => {
 
       <!-- 右侧：操作按钮 -->
       <div class="tc-board__actions">
-        <OButton v-if="isAdmin" variant="solid" color="primary" size="medium">{{ t('tc.create') }}</OButton>
+        <OButton v-if="isAdmin" variant="outline" color="primary" size="medium" round="pill">{{ t('tc.create') }}</OButton>
         <ODropdown v-if="isAdmin" trigger="click">
-          <OButton variant="outline" size="medium">
+          <OButton variant="outline" color="primary" size="medium" round="pill">
             更多操作
             <template #suffix>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -216,6 +273,9 @@ const handleExport = (type: 'all' | 'selected') => {
         </template>
         <template #td_testId="{ row }">
           <span class="tc-board__cell-id">{{ row.testId }}</span>
+        </template>
+        <template #td_mainKey="{ row }">
+          <span class="tc-board__cell-id">{{ row.mainKey }}</span>
         </template>
         <template #td_level="{ row }">
           <OTag color="info" size="medium" variant="outline">{{ row.level }}</OTag>
@@ -251,12 +311,12 @@ const handleExport = (type: 'all' | 'selected') => {
         <template #td_testCaseModule="{ row }">
           <span class="tc-board__cell-plain">{{ row.testCaseModule }}</span>
         </template>
-        <template v-if="isAdmin" #td_action>
-          <div class="tc-board__action-cell">
-            <OLink color="primary" href="javascript:void(0)">{{ t('action.edit') }}</OLink>
-            <OLink color="danger" href="javascript:void(0)">{{ t('action.delete') }}</OLink>
-          </div>
-        </template>
+        <template v-if="isAdmin" #td_action="{ row }">
+           <div class="tc-board__action-cell">
+             <OLink color="primary" href="javascript:void(0)" @click="handleEdit(row)">{{ t('action.edit') }}</OLink>
+             <OLink color="danger" href="javascript:void(0)" @click="handleDelete(row)">{{ t('action.delete') }}</OLink>
+           </div>
+         </template>
       </OTable>
     </div>
 
@@ -264,6 +324,119 @@ const handleExport = (type: 'all' | 'selected') => {
       <OPagination :total="filtered.length" :page="page" :page-size="pageSize" :page-sizes="[10,20,50]" @change="onPageChange" />
     </div>
   </section>
+
+  <!-- ══ 编辑用例弹窗 ════════════════════════════════════════════════════════ -->
+  <ODialog v-model:visible="editDialog.visible" title="编辑用例" size="large">
+    <div class="tc-form">
+      <div class="tc-form__section-title"><span class="tc-form__bar" />基本信息</div>
+      <div class="tc-form__grid">
+        <div class="tc-form__field">
+          <label class="tc-form__label"><span class="tc-form__required">*</span>用例名称</label>
+          <OInput v-model="editDialog.form.name" placeholder="请输入用例名称" clearable />
+        </div>
+        <div class="tc-form__field">
+          <label class="tc-form__label">编号</label>
+          <OInput v-model="editDialog.form.testId" placeholder="例：PCIE_DPC_FUNC_003" clearable />
+        </div>
+        <div class="tc-form__field">
+          <label class="tc-form__label">唯一标识符</label>
+          <OInput v-model="editDialog.form.mainKey" placeholder="例：321138:13916" clearable />
+        </div>
+        <div class="tc-form__field">
+          <label class="tc-form__label">级别</label>
+          <OSelect v-model="editDialog.form.level" placeholder="请选择">
+            <OOption value="Level 1" label="Level 1" />
+            <OOption value="Level 2" label="Level 2" />
+            <OOption value="Level 1/2" label="Level 1/2" />
+          </OSelect>
+        </div>
+        <div class="tc-form__field">
+          <label class="tc-form__label">测试类型</label>
+          <OSelect v-model="editDialog.form.testType" placeholder="请选择">
+            <OOption value="functional" label="功能" />
+            <OOption value="performance" label="性能" />
+            <OOption value="reliability" label="可靠性" />
+            <OOption value="compatibility" label="兼容性" />
+          </OSelect>
+        </div>
+        <div class="tc-form__field">
+          <label class="tc-form__label">用例模块</label>
+          <OSelect v-model="editDialog.form.testCaseModule" placeholder="请选择">
+            <OOption value="ACC" label="ACC" />
+            <OOption value="ZIP" label="ZIP" />
+            <OOption value="PCIe" label="PCIe" />
+            <OOption value="UACCE" label="UACCE" />
+          </OSelect>
+        </div>
+        <div class="tc-form__field">
+          <label class="tc-form__label">自动化类型</label>
+          <OSelect v-model="editDialog.form.isAutomated" placeholder="请选择">
+            <OOption value="true" label="TRUE" />
+            <OOption value="false" label="FALSE" />
+          </OSelect>
+        </div>
+        <div class="tc-form__field tc-form__field--full">
+          <label class="tc-form__label">自动化脚本/路径</label>
+          <OInput v-model="editDialog.form.automationScript" placeholder="例：D06:/test_cases/pcie/test.py::TestCase::test_dpc" clearable />
+        </div>
+      </div>
+
+      <ODivider />
+
+      <div class="tc-form__section-title"><span class="tc-form__bar" />测试内容</div>
+      <div class="tc-form__grid">
+        <div class="tc-form__field tc-form__field--full">
+          <label class="tc-form__label">预置条件</label>
+          <OTextarea v-model="editDialog.form.precondition" placeholder="描述测试前的准备条件" :rows="3" />
+        </div>
+        <div class="tc-form__field tc-form__field--full">
+          <label class="tc-form__label">测试步骤</label>
+          <OTextarea v-model="editDialog.form.testSteps" placeholder="逐步描述测试操作" :rows="4" />
+        </div>
+        <div class="tc-form__field tc-form__field--full">
+          <label class="tc-form__label">预期结果</label>
+          <OTextarea v-model="editDialog.form.expectedResult" placeholder="描述期望的测试结果" :rows="3" />
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="tc-dialog-footer">
+        <OButton variant="outline" color="primary" size="medium" round="pill" @click="editDialog.visible = false">取消</OButton>
+        <OButton variant="solid" color="primary" size="medium" round="pill" @click="handleEditConfirm">确认保存</OButton>
+      </div>
+    </template>
+  </ODialog>
+
+  <!-- ══ 单条删除确认弹窗 ════════════════════════════════════════════════════════ -->
+  <ODialog v-model:visible="deleteDialog.visible" title="确认删除" size="small">
+    <div class="tc-delete-body">
+      <p class="tc-delete-body__text">
+        确认删除用例「<strong>{{ deleteDialog.targetName }}</strong>」？此操作不可恢复。
+      </p>
+    </div>
+    <template #footer>
+      <div class="tc-dialog-footer">
+        <OButton variant="outline" color="primary" size="medium" round="pill" @click="deleteDialog.visible = false">取消</OButton>
+        <OButton variant="solid" color="danger" size="medium" round="pill" @click="confirmDelete">确认删除</OButton>
+      </div>
+    </template>
+  </ODialog>
+
+  <!-- ══ 批量删除确认弹窗 ════════════════════════════════════════════════════════ -->
+  <ODialog v-model:visible="batchDeleteDialog.visible" title="确认批量删除" size="small">
+    <div class="tc-delete-body">
+      <p class="tc-delete-body__text">
+        确认删除选中的 <strong>{{ selectedIds.length }} 条</strong>用例？此操作不可恢复。
+      </p>
+    </div>
+    <template #footer>
+      <div class="tc-dialog-footer">
+        <OButton variant="outline" color="primary" size="medium" round="pill" @click="batchDeleteDialog.visible = false">取消</OButton>
+        <OButton variant="solid" color="danger" size="medium" round="pill" @click="confirmBatchDelete">确认删除</OButton>
+      </div>
+    </template>
+  </ODialog>
 </template>
 
 <style lang="scss" scoped>
@@ -313,6 +486,19 @@ const handleExport = (type: 'all' | 'selected') => {
   &__bottom { display: flex; align-items: center; justify-content: flex-end; padding-top: var(--o-r-gap-4); border-top: 1px solid var(--o-color-control4); }
   &__bottom-actions { display: flex; gap: var(--o-r-gap-3); }
 }
+.tc-delete-body__text { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); }
+.tc-delete-body__text strong { color: var(--o-color-danger1); }
+.tc-delete-body { padding: var(--o-r-gap-3) 0; }
+.tc-dialog-footer { display: flex; justify-content: flex-end; gap: var(--o-r-gap-3); }
+
+.tc-form { display: flex; flex-direction: column; gap: var(--o-r-gap-5); max-height: 60vh; overflow-y: auto; padding-right: var(--o-r-gap-2); }
+.tc-form__section-title { display: flex; align-items: center; gap: var(--o-r-gap-2); color: var(--o-color-info1); font-size: var(--o-r-font_size-text1); font-weight: var(--o-font_weight-bold); }
+.tc-form__bar { display: inline-block; width: 4px; height: 16px; background-color: var(--o-color-primary1); border-radius: 2px; flex-shrink: 0; }
+.tc-form__grid { display: flex; flex-wrap: wrap; gap: var(--o-r-gap-4) var(--o-r-grid-column-gutter); }
+.tc-form__field { width: calc(50% - var(--o-r-grid-column-gutter) / 2); display: flex; flex-direction: column; gap: var(--o-r-gap-2); }
+.tc-form__field--full { width: 100%; }
+.tc-form__label { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); font-weight: var(--o-font_weight-regular); }
+.tc-form__required { color: var(--o-color-danger1); margin-right: var(--o-r-gap-1); }
 </style>
 
 <!-- 横向滚动：覆盖 OTable 内置 overflow:hidden，与补丁看板方案完全一致 -->
@@ -325,7 +511,6 @@ const handleExport = (type: 'all' | 'selected') => {
 .tc-board__table-wrap table {
   min-width: var(--tc-table-min-width);
   table-layout: fixed;
-  word-break: break-all;
 }
 .tc-board__table-wrap th {
   white-space: nowrap;
@@ -333,6 +518,8 @@ const handleExport = (type: 'all' | 'selected') => {
   text-overflow: ellipsis;
 }
 .tc-board__table-wrap td {
+  white-space: normal;
+  word-break: break-word;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -340,7 +527,6 @@ const handleExport = (type: 'all' | 'selected') => {
 .tc-board__table-wrap td:first-child {
   text-align: left;
 }
-/* 内容列允许折行（预置条件/步骤/预期结果/脚本路径） */
 .tc-board__table-wrap td .tc-board__cell-text,
 .tc-board__table-wrap td .tc-board__cell-script {
   white-space: normal;

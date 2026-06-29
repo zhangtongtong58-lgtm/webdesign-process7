@@ -2,7 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import {
   OButton, OTag, OTable, OPagination, OSelect, OOption,
-  OCheckbox, OLink, OMessage, OInput, ODropdown,
+  OCheckbox, OLink, OMessage, OInput, ODropdown, ODialog, OTextarea, ODivider,
 } from '@opensig/opendesign'
 import { useAuth } from '../../composables/useAuth'
 import { t } from '../../i18n/zh'
@@ -17,9 +17,10 @@ interface PatchRow {
   communityIssue: string | null
   patchType: string
   productVersion: string
-  userKernelMode: string | null
+  userKernel: string | null
   patchModule: string
   commitOE: string
+  commitIdOE: string
   prRelated: string | null
   oeMergeTag: string
   oePR: string
@@ -28,7 +29,7 @@ interface PatchRow {
   mainKey: string
   merged: boolean
   customerImpact: string
-  hwRepoStatus: 'all' | 'partial' | 'none'
+  hwRepoStatus: 'merged' | 'unmerged'
   customerMergeStatus: string
   mergeVersion: string
   osReleaseVersion: string
@@ -42,13 +43,14 @@ const ALL_PATCHES: PatchRow[] = [
     title: 'DAA算子内核态驱动支持',
     description: '内核ZIP驱动支持hash-agg算法类型对UACCE呈现',
     communityIssue: null, patchType: 'Bug_4', productVersion: '950',
-    userKernelMode: null, patchModule: 'ACC',
+    userKernel: null, patchModule: 'ACC',
     commitOE: 'crypto: hisilicon - enable error reporting again',
+    commitIdOE: '5f3a1b2c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a',
     prRelated: null, oeMergeTag: '6.6.0-94.0.0',
     oePR: 'https://gitcode.com/openeuler/kernel/pull/16483',
     commitUpstream: '80736a97cf94eeb02da6de6cfbc5a74514c85a16',
     upstreamMergeTag: 'v6.18-rc1', mainKey: '321138:13916',
-    merged: true, customerImpact: '无影响', hwRepoStatus: 'all',
+    merged: true, customerImpact: '无影响', hwRepoStatus: 'merged',
     customerMergeStatus: '已合入', mergeVersion: 'main-5.10', osReleaseVersion: '24.03-LTS',
   },
   {
@@ -56,12 +58,13 @@ const ALL_PATCHES: PatchRow[] = [
     title: 'DAA算子内核态驱动支持',
     description: '内核ZIP驱动支持hash-agg算法类型对UACCE呈现',
     communityIssue: null, patchType: 'Bug_5', productVersion: '950',
-    userKernelMode: null, patchModule: 'ACC',
+    userKernel: null, patchModule: 'ACC',
     commitOE: 'crypto: hisilicon/zip - do not expose hashagg algorithm when uacce mode is 2',
+    commitIdOE: '3e7c9d1a2b4f5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b',
     prRelated: null, oeMergeTag: '6.6.0-94.0.0',
     oePR: 'https://gitcode.com/openeuler/kernel/pull/16483',
     commitUpstream: '', upstreamMergeTag: '', mainKey: '321139:14005',
-    merged: true, customerImpact: '无影响', hwRepoStatus: 'all',
+    merged: true, customerImpact: '无影响', hwRepoStatus: 'merged',
     customerMergeStatus: '已合入', mergeVersion: 'main-5.10', osReleaseVersion: '24.03-LTS',
   },
   {
@@ -69,12 +72,13 @@ const ALL_PATCHES: PatchRow[] = [
     title: 'DAA算子内核态驱动支持',
     description: '内核ZIP驱动支持hash-agg算法类型对UACCE呈现',
     communityIssue: null, patchType: 'Bug_7', productVersion: '950',
-    userKernelMode: null, patchModule: 'ACC',
+    userKernel: null, patchModule: 'ACC',
     commitOE: 'misc: uacce - fix a null pointer access issue when poweroff',
+    commitIdOE: '8a2b4c6d1e3f5a7b9c0d2e4f6a8b0c1d3e5f7a9b1c',
     prRelated: null, oeMergeTag: '6.6.0-119.0.0',
     oePR: 'https://gitcode.com/openeuler/kernel/pull/18980',
     commitUpstream: '', upstreamMergeTag: '', mainKey: '324123:14218',
-    merged: false, customerImpact: '修复空指针崩溃', hwRepoStatus: 'partial',
+    merged: false, customerImpact: '修复空指针崩溃', hwRepoStatus: 'unmerged',
     customerMergeStatus: '待合入', mergeVersion: '', osReleaseVersion: '',
   },
   {
@@ -82,13 +86,14 @@ const ALL_PATCHES: PatchRow[] = [
     title: 'PCIe DPC中断注册优化',
     description: 'PCIe DPC中断注册机制改进，支持中断累加',
     communityIssue: 'I9X2K1', patchType: 'Feature_1', productVersion: '950',
-    userKernelMode: '内核', patchModule: 'PCIe',
+    userKernel: '内核', patchModule: 'PCIe',
     commitOE: 'pcie/portdrv: add DPC interrupt support for RC port',
+    commitIdOE: '1c3e5a7b9d1f2a4b6c8e0d2f4a6b8c0e2d4f6a8b0c2',
     prRelated: null, oeMergeTag: '6.6.0-90.0.0',
     oePR: 'https://gitcode.com/openeuler/kernel/pull/15200',
     commitUpstream: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0',
     upstreamMergeTag: 'v6.17-rc2', mainKey: '318456:12001',
-    merged: true, customerImpact: '提升中断注册可靠性', hwRepoStatus: 'all',
+    merged: true, customerImpact: '提升中断注册可靠性', hwRepoStatus: 'merged',
     customerMergeStatus: '已合入', mergeVersion: 'main-5.10', osReleaseVersion: '24.03-LTS',
   },
   {
@@ -96,12 +101,13 @@ const ALL_PATCHES: PatchRow[] = [
     title: 'ZIP压缩性能基准优化',
     description: 'ZIP驱动压缩性能基准测试路径优化',
     communityIssue: null, patchType: 'Bug_3', productVersion: '950',
-    userKernelMode: null, patchModule: 'ZIP',
+    userKernel: null, patchModule: 'ZIP',
     commitOE: 'crypto: hisilicon/zip - fix perf benchmark path',
+    commitIdOE: '4d6f8a0b2c4e6f8a0b2c4d6e8f0a2b4c6d8e0f2a4b6',
     prRelated: null, oeMergeTag: '6.6.0-120.0.0',
     oePR: 'https://gitcode.com/openeuler/kernel/pull/19100',
     commitUpstream: '', upstreamMergeTag: '', mainKey: '325001:14500',
-    merged: false, customerImpact: '性能提升约3%', hwRepoStatus: 'none',
+    merged: false, customerImpact: '性能提升约3%', hwRepoStatus: 'unmerged',
     customerMergeStatus: '未合入', mergeVersion: '', osReleaseVersion: '',
   },
   {
@@ -109,13 +115,14 @@ const ALL_PATCHES: PatchRow[] = [
     title: 'UACCE设备注册加固',
     description: 'UACCE设备注册流程安全性加固，防止空指针访问',
     communityIssue: 'CVE-2026-1234', patchType: 'Bug_12', productVersion: '950Pro',
-    userKernelMode: '内核', patchModule: 'UACCE',
+    userKernel: '内核', patchModule: 'UACCE',
     commitOE: 'uacce: fix device registration security issue',
+    commitIdOE: '7e9a1c3b5d7f9a1c3e5b7d9f1a3c5e7b9d1f3a5c7e',
     prRelated: null, oeMergeTag: '6.6.0-95.0.0',
     oePR: 'https://gitcode.com/openeuler/kernel/pull/17000',
     commitUpstream: 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1',
     upstreamMergeTag: 'v6.16-rc3', mainKey: '320001:13000',
-    merged: true, customerImpact: '修复安全漏洞', hwRepoStatus: 'all',
+    merged: true, customerImpact: '修复安全漏洞', hwRepoStatus: 'merged',
     customerMergeStatus: '已合入', mergeVersion: 'sec-5.10', osReleaseVersion: '22.03-LTS-SP3',
   },
 ]
@@ -154,7 +161,7 @@ const moduleOptions   = [{ value: 'ACC', label: 'ACC' }, { value: 'ZIP', label: 
 const patchTypeOptions= [{ value: 'Bug', label: 'Bug' }, { value: 'Feature', label: 'Feature' }, { value: 'cleanup', label: 'Cleanup' }]
 const versionOptions  = [{ value: '950', label: '950' }, { value: '950Pro', label: '950Pro' }]
 const mergeOptions    = [{ value: 'true', label: '已合入' }, { value: 'false', label: '未合入' }]
-const hwRepoOptions   = [{ value: 'all', label: '全合入' }, { value: 'partial', label: '部分合入' }, { value: 'none', label: '未合入' }]
+const hwRepoOptions   = [{ value: 'merged', label: '已合入' }, { value: 'unmerged', label: '未合入' }]
 
 const filtered = computed<PatchRow[]>(() =>
   basePatches.value.filter((p) => {
@@ -216,37 +223,109 @@ const stats = computed(() => [
 const columns = computed(() => {
   const base = [
     { label: '', key: 'select', style: { width: '72px', minWidth: '72px' } },
-    { label: '概述(SR粒度)',        key: 'title',               style: { width: '160px', minWidth: '160px' } },
-    { label: '功能介绍(AR粒度)',    key: 'description',         style: { width: '180px', minWidth: '180px' } },
-    { label: '关联社区Issue',       key: 'communityIssue',      style: { width: '110px', minWidth: '110px' } },
-    { label: '补丁类型',            key: 'patchType',           style: { width: '100px', minWidth: '100px' } },
-    { label: '产品版本',            key: 'productVersion',      style: { width: '80px',  minWidth: '80px'  } },
-    { label: '用户态/内核态',       key: 'userKernelMode',      style: { width: '80px',  minWidth: '80px'  } },
-    { label: '补丁模块',            key: 'patchModule',         style: { width: '80px',  minWidth: '80px'  } },
-    { label: 'Commit OE',          key: 'commitOE',            style: { width: '200px', minWidth: '200px' } },
-    { label: 'PR前、后置补丁',      key: 'prRelated',           style: { width: '100px', minWidth: '100px' } },
-    { label: 'OE Merge tag',       key: 'oeMergeTag',          style: { width: '120px', minWidth: '120px' } },
-    { label: 'OE PR',              key: 'oePR',                style: { width: '200px', minWidth: '200px' } },
-    { label: 'Commit upstream',    key: 'commitUpstream',      style: { width: '140px', minWidth: '140px' } },
-    { label: 'upstream Merge tag', key: 'upstreamMergeTag',    style: { width: '130px', minWidth: '130px' } },
-    { label: '唯一标识符',                key: 'mainKey',             style: { width: '110px', minWidth: '110px' } },
-    { label: '是否合入',            key: 'merged',              style: { width: '80px',  minWidth: '80px'  } },
-    { label: '客户影响',            key: 'customerImpact',      style: { width: '120px', minWidth: '120px' } },
-    { label: '华为仓库合入状态',    key: 'hwRepoStatus',        style: { width: '100px', minWidth: '100px' } },
-    { label: '客户侧合入状态',      key: 'customerMergeStatus', style: { width: '100px', minWidth: '100px' } },
-    { label: '合入版本',            key: 'mergeVersion',        style: { width: '100px', minWidth: '100px' } },
-    { label: 'OS发布版本',          key: 'osReleaseVersion',    style: { width: '120px', minWidth: '120px' } },
+    { label: '概述(SR粒度)', key: 'title', style: { width: '160px', minWidth: '160px' } },
+    { label: '功能介绍(AR粒度)', key: 'description', style: { width: '180px', minWidth: '180px' } },
+    { label: '关联社区Issue', key: 'communityIssue', style: { width: '130px', minWidth: '130px' } },
+    { label: '补丁类型', key: 'patchType', style: { width: '100px', minWidth: '100px' } },
+    { label: '产品版本', key: 'productVersion', style: { width: '100px', minWidth: '100px' } },
+    { label: '用户态/内核态', key: 'userKernel', style: { width: '120px', minWidth: '120px' } },
+    { label: '补丁模块', key: 'patchModule', style: { width: '100px', minWidth: '100px' } },
+    { label: 'Commit OE', key: 'commitOE', style: { width: '200px', minWidth: '200px' } },
+    { label: 'Commit ID OE', key: 'commitIdOE', style: { width: '140px', minWidth: '140px' } },
+    { label: 'PR前、后置补丁', key: 'prRelated', style: { width: '140px', minWidth: '140px' } },
+    { label: 'OE Merge tag', key: 'oeMergeTag', style: { width: '120px', minWidth: '120px' } },
+    { label: 'OE PR', key: 'oePR', style: { width: '200px', minWidth: '200px' } },
+    { label: 'Commit upstream', key: 'commitUpstream', style: { width: '150px', minWidth: '150px' } },
+    { label: 'upstream Merge tag', key: 'upstreamMergeTag', style: { width: '140px', minWidth: '140px' } },
+    { label: '唯一标识符', key: 'mainKey', style: { width: '130px', minWidth: '130px' } },
+    { label: '是否需要合入', key: 'merged', style: { width: '120px', minWidth: '120px' } },
+    { label: '客户影响', key: 'customerImpact', style: { width: '120px', minWidth: '120px' } },
+    { label: '华为合入状态', key: 'hwRepoStatus', style: { width: '120px', minWidth: '120px' } },
+    { label: '客户合入状态', key: 'customerMergeStatus', style: { width: '120px', minWidth: '120px' } },
+    { label: '合入版本', key: 'mergeVersion', style: { width: '100px', minWidth: '100px' } },
+    { label: 'OS发布版本', key: 'osReleaseVersion', style: { width: '120px', minWidth: '120px' } },
     ...(isAdmin.value ? [{ label: '操作', key: 'action', style: { width: '150px', minWidth: '150px' } }] : []),
   ]
   return base
 })
 
-const hwRepoLabel = (s: string) => ({ all: '全合入', partial: '部分合入', none: '未合入' }[s] ?? s)
-const hwRepoColor = (s: string) => ({ all: 'success', partial: 'warning', none: 'danger' }[s] ?? 'info')
+const hwRepoLabel = (s: string) => ({ merged: '已合入', unmerged: '未合入' }[s] ?? s)
+const hwRepoColor = (s: string) => ({ merged: 'success', unmerged: 'danger' }[s] ?? 'info')
+const custMergeLabel = (s: string) => ({ '已合入': '已合入', '未合入': '未合入' }[s] ?? s)
+const custMergeColor = (s: string) => ({ '已合入': 'success', '未合入': 'danger' }[s] ?? 'info')
+
+const batchDeleteDialog = reactive({ visible: false })
+const deleteDialog = reactive({ visible: false, targetId: '', targetTitle: '' })
 
 const handleBatchDelete = () => {
   if (!selectedIds.value.length) { OMessage.warning('请先选择补丁'); return }
-  OMessage.success(`已选 ${selectedIds.value.length} 条，批量删除操作已触发`)
+  batchDeleteDialog.visible = true
+}
+
+const confirmBatchDelete = () => {
+  OMessage.success(`已删除 ${selectedIds.value.length} 条补丁`)
+  selectedIds.value = []
+  batchDeleteDialog.visible = false
+}
+
+const handleDelete = (row: any) => {
+  deleteDialog.targetId = row.id
+  deleteDialog.targetTitle = row.title
+  deleteDialog.visible = true
+}
+
+const confirmDelete = () => {
+  OMessage.success(`补丁「${deleteDialog.targetTitle}」已删除`)
+  deleteDialog.visible = false
+}
+
+const editDialog = reactive({
+  visible: false,
+  targetId: '',
+  targetTitle: '',
+  form: {
+    mainKey: '', title: '', description: '', communityIssue: '',
+    patchType: '', productVersion: '', userKernel: '', patchModule: '',
+    commitOE: '', commitIdOE: '', prRelated: '', oeMergeTag: '', oePR: '',
+    commitUpstream: '', upstreamMergeTag: '',
+    merged: '', customerImpact: '', hwRepoStatus: '',
+    customerMergeStatus: '', mergeVersion: '', osReleaseVersion: '',
+  } as Record<string, string>,
+})
+
+const handleEdit = (row: any) => {
+  editDialog.targetId = row.id
+  editDialog.targetTitle = row.title
+  Object.assign(editDialog.form, {
+    mainKey: row.mainKey ?? '',
+    title: row.title ?? '',
+    description: row.description ?? '',
+    communityIssue: row.communityIssue ?? '',
+    patchType: row.patchType ?? '',
+    productVersion: row.productVersion ?? '',
+    userKernel: row.userKernel ?? '',
+    patchModule: row.patchModule ?? '',
+    commitOE: row.commitOE ?? '',
+    commitIdOE: row.commitIdOE ?? '',
+    prRelated: row.prRelated ?? '',
+    oeMergeTag: row.oeMergeTag ?? '',
+    oePR: row.oePR ?? '',
+    commitUpstream: row.commitUpstream ?? '',
+    upstreamMergeTag: row.upstreamMergeTag ?? '',
+    merged: String(row.merged) ?? '',
+    customerImpact: row.customerImpact ?? '',
+    hwRepoStatus: row.hwRepoStatus ?? '',
+    customerMergeStatus: row.customerMergeStatus ?? '',
+    mergeVersion: row.mergeVersion ?? '',
+    osReleaseVersion: row.osReleaseVersion ?? '',
+  })
+  editDialog.visible = true
+}
+
+const handleEditConfirm = () => {
+  if (!editDialog.form.title.trim()) { OMessage.warning('概述(SR粒度)不能为空'); return }
+  OMessage.success(`补丁「${editDialog.targetTitle}」已更新`)
+  editDialog.visible = false
 }
 
 // ─── 导入弹窗（Excel批量上传）──────────────────────────────────────────────────
@@ -359,11 +438,11 @@ const handleExport = (type: 'all' | 'selected') => {
 
       <!-- 操作按钮（右侧） -->
       <div class="patch-board__actions">
-        <OButton v-if="isAdmin" variant="solid" color="primary" size="medium">
+        <OButton v-if="isAdmin" variant="outline" color="primary" size="medium" round="pill">
           {{ t('patch.create') }}
         </OButton>
         <ODropdown v-if="isAdmin" trigger="click">
-          <OButton variant="outline" size="medium">
+          <OButton variant="outline" color="primary" size="medium" round="pill">
             更多操作
             <template #suffix>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -396,45 +475,61 @@ const handleExport = (type: 'all' | 'selected') => {
         </template>
 
         <template #td_title="{ row }">
-          <span class="patch-board__cell-title">{{ row.title }}</span>
+          {{ row.title }}
         </template>
         <template #td_description="{ row }">
-          <span class="patch-board__cell-desc">{{ row.description }}</span>
+          <span class="patch-board__cell-text">{{ row.description }}</span>
         </template>
         <template #td_communityIssue="{ row }">
-          <OLink v-if="row.communityIssue" color="primary" href="javascript:void(0)" class="patch-board__cell-mono">
+          <OLink v-if="row.communityIssue" color="primary" href="javascript:void(0)">
             {{ row.communityIssue }}
           </OLink>
-          <span v-else class="patch-board__dash">—</span>
+          <span v-else class="patch-board__muted">—</span>
         </template>
         <template #td_patchType="{ row }">
           <OTag color="normal" size="medium">{{ row.patchType }}</OTag>
         </template>
-        <template #td_userKernelMode="{ row }">
-          <span class="patch-board__muted">{{ row.userKernelMode ?? '—' }}</span>
+        <template #td_userKernel="{ row }">
+          <span class="patch-board__muted">{{ row.userKernel ?? '—' }}</span>
+        </template>
+        <template #td_commitOE="{ row }">
+          <span class="patch-board__cell-text">{{ row.commitOE }}</span>
+        </template>
+        <template #td_commitIdOE="{ row }">
+          <span class="patch-board__cell-id">{{ row.commitIdOE ? row.commitIdOE.slice(0, 12) : '—' }}</span>
         </template>
         <template #td_prRelated="{ row }">
           <span class="patch-board__muted">{{ row.prRelated ?? '—' }}</span>
         </template>
         <template #td_oePR="{ row }">
-          <OLink v-if="row.oePR" color="primary" :href="row.oePR" target="_blank" class="patch-board__pr-url">
+          <OLink v-if="row.oePR" color="primary" :href="row.oePR" target="_blank" class="patch-board__link">
             {{ row.oePR }}
+            <template #suffix>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 2H14V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 2L9 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M13 9V13C13 13.5304 12.7893 14.0391 12.4142 14.4142C12.0391 14.7893 11.5304 15 11 15H3C2.46957 15 1.96086 14.7893 1.58579 14.4142C1.21071 14.0391 1 13.5304 1 13V5C1 4.46957 1.21071 3.96086 1.58579 3.58579C1.96086 3.21071 2.46957 3 3 3H7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </template>
           </OLink>
           <span v-else class="patch-board__muted">—</span>
         </template>
         <template #td_commitUpstream="{ row }">
-          <span class="patch-board__cell-hash">
-            {{ row.commitUpstream ? row.commitUpstream.slice(0, 16) : '—' }}
-          </span>
+          <span class="patch-board__cell-id">{{ row.commitUpstream ? row.commitUpstream.slice(0, 12) : '—' }}</span>
         </template>
         <template #td_merged="{ row }">
           <OTag :color="row.merged ? 'success' : 'danger'" size="medium">
-            {{ row.merged ? '已合入' : '未合入' }}
+            {{ row.merged ? '是' : '否' }}
           </OTag>
         </template>
         <template #td_hwRepoStatus="{ row }">
           <OTag :color="hwRepoColor(row.hwRepoStatus)" size="medium">
             {{ hwRepoLabel(row.hwRepoStatus) }}
+          </OTag>
+        </template>
+        <template #td_customerMergeStatus="{ row }">
+          <OTag :color="custMergeColor(row.customerMergeStatus)" size="medium">
+            {{ custMergeLabel(row.customerMergeStatus) }}
           </OTag>
         </template>
         <template #td_mergeVersion="{ row }">
@@ -443,12 +538,12 @@ const handleExport = (type: 'all' | 'selected') => {
         <template #td_osReleaseVersion="{ row }">
           <span class="patch-board__muted">{{ row.osReleaseVersion || '—' }}</span>
         </template>
-        <template v-if="isAdmin" #td_action>
-          <div class="patch-board__action-cell">
-            <OLink color="primary" href="javascript:void(0)">编辑</OLink>
-            <OLink color="danger" href="javascript:void(0)">删除</OLink>
-          </div>
-        </template>
+        <template v-if="isAdmin" #td_action="{ row }">
+           <div class="patch-board__action-cell">
+             <OLink color="primary" href="javascript:void(0)" @click="handleEdit(row)">{{ t('action.edit') }}</OLink>
+             <OLink color="danger" href="javascript:void(0)" @click="handleDelete(row)">{{ t('action.delete') }}</OLink>
+           </div>
+         </template>
       </OTable>
     </div>
 
@@ -463,6 +558,169 @@ const handleExport = (type: 'all' | 'selected') => {
       />
     </div>
   </section>
+
+  <!-- ══ 编辑补丁弹窗 ════════════════════════════════════════════════════════ -->
+  <ODialog v-model:visible="editDialog.visible" title="编辑补丁" size="large">
+    <div class="patch-form">
+      <div class="patch-form__section-title"><span class="patch-form__bar" />基本信息</div>
+      <div class="patch-form__grid">
+        <div class="patch-form__field">
+          <label class="patch-form__label">唯一标识符</label>
+          <OInput v-model="editDialog.form.mainKey" placeholder="例：321138:13916" clearable />
+        </div>
+        <div class="patch-form__field patch-form__field--full">
+          <label class="patch-form__label"><span class="patch-form__required">*</span>概述（SR粒度）</label>
+          <OInput v-model="editDialog.form.title" placeholder="请输入补丁概述" clearable />
+        </div>
+        <div class="patch-form__field patch-form__field--full">
+          <label class="patch-form__label">功能介绍（AR粒度）</label>
+          <OTextarea v-model="editDialog.form.description" placeholder="请详细描述功能" :rows="3" />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">补丁类型</label>
+          <OSelect v-model="editDialog.form.patchType" placeholder="请选择">
+            <OOption value="Bug" label="Bug" />
+            <OOption value="Feature" label="Feature" />
+            <OOption value="cleanup" label="Cleanup" />
+          </OSelect>
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">产品版本</label>
+          <OSelect v-model="editDialog.form.productVersion" placeholder="请选择">
+            <OOption value="950" label="950" />
+            <OOption value="950Pro" label="950Pro" />
+          </OSelect>
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">用户态/内核态</label>
+          <OSelect v-model="editDialog.form.userKernel" placeholder="请选择">
+            <OOption value="用户态" label="用户态" />
+            <OOption value="内核" label="内核" />
+          </OSelect>
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">补丁模块</label>
+          <OSelect v-model="editDialog.form.patchModule" placeholder="请选择">
+            <OOption value="ACC" label="ACC" />
+            <OOption value="ZIP" label="ZIP" />
+            <OOption value="PCIe" label="PCIe" />
+            <OOption value="UACCE" label="UACCE" />
+          </OSelect>
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">关联社区Issue</label>
+          <OInput v-model="editDialog.form.communityIssue" placeholder="例：I9X2K1" clearable />
+        </div>
+      </div>
+
+      <ODivider />
+
+      <div class="patch-form__section-title"><span class="patch-form__bar" />Commit / PR 信息</div>
+      <div class="patch-form__grid">
+        <div class="patch-form__field patch-form__field--full">
+          <label class="patch-form__label">Commit OE</label>
+          <OInput v-model="editDialog.form.commitOE" placeholder="例：crypto: hisilicon - enable error reporting again" clearable />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">Commit ID OE</label>
+          <OInput v-model="editDialog.form.commitIdOE" placeholder="例：5f3a1b2c7d8e9f0a" clearable />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">OE Merge tag</label>
+          <OInput v-model="editDialog.form.oeMergeTag" placeholder="例：6.6.0-94.0.0" clearable />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">OE PR</label>
+          <OInput v-model="editDialog.form.oePR" placeholder="例：gitc URL" clearable />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">PR前、后置补丁</label>
+          <OInput v-model="editDialog.form.prRelated" clearable />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">Commit upstream</label>
+          <OInput v-model="editDialog.form.commitUpstream" placeholder="upstream commit hash" clearable />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">upstream Merge tag</label>
+          <OInput v-model="editDialog.form.upstreamMergeTag" placeholder="例：v6.18-rc1" clearable />
+        </div>
+      </div>
+
+      <ODivider />
+
+      <div class="patch-form__section-title"><span class="patch-form__bar" />合入状态</div>
+      <div class="patch-form__grid">
+        <div class="patch-form__field">
+          <label class="patch-form__label">是否需要合入</label>
+          <OSelect v-model="editDialog.form.merged" placeholder="请选择">
+            <OOption value="true" label="是" />
+            <OOption value="false" label="否" />
+          </OSelect>
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">华为合入状态</label>
+          <OSelect v-model="editDialog.form.hwRepoStatus" placeholder="请选择">
+            <OOption value="merged" label="已合入" />
+            <OOption value="unmerged" label="未合入" />
+          </OSelect>
+        </div>
+        <div class="patch-form__field patch-form__field--full">
+          <label class="patch-form__label">客户影响</label>
+          <OTextarea v-model="editDialog.form.customerImpact" placeholder="描述此补丁对客户的影响" :rows="2" />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">客户侧合入状态</label>
+          <OInput v-model="editDialog.form.customerMergeStatus" placeholder="例：已合入" clearable />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">合入版本</label>
+          <OInput v-model="editDialog.form.mergeVersion" placeholder="例：main-5.10" clearable />
+        </div>
+        <div class="patch-form__field patch-form__field--full">
+          <label class="patch-form__label">OS发布版本</label>
+          <OInput v-model="editDialog.form.osReleaseVersion" placeholder="例：24.03-LTS" clearable />
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="patch-dialog-footer">
+        <OButton variant="outline" color="primary" size="medium" round="pill" @click="editDialog.visible = false">取消</OButton>
+        <OButton variant="solid" color="primary" size="medium" round="pill" @click="handleEditConfirm">确认保存</OButton>
+      </div>
+    </template>
+  </ODialog>
+
+  <!-- ══ 单条删除确认弹窗 ════════════════════════════════════════════════════════ -->
+  <ODialog v-model:visible="deleteDialog.visible" title="确认删除" size="small">
+    <div class="patch-delete-body">
+      <p class="patch-delete-body__text">
+        确认删除补丁「<strong>{{ deleteDialog.targetTitle }}</strong>」？此操作不可恢复。
+      </p>
+    </div>
+    <template #footer>
+      <div class="patch-dialog-footer">
+        <OButton variant="outline" color="primary" size="medium" round="pill" @click="deleteDialog.visible = false">取消</OButton>
+        <OButton variant="solid" color="danger" size="medium" round="pill" @click="confirmDelete">确认删除</OButton>
+      </div>
+    </template>
+  </ODialog>
+
+  <!-- ══ 批量删除确认弹窗 ════════════════════════════════════════════════════════ -->
+  <ODialog v-model:visible="batchDeleteDialog.visible" title="确认批量删除" size="small">
+    <div class="patch-delete-body">
+      <p class="patch-delete-body__text">
+        确认删除选中的 <strong>{{ selectedIds.length }} 条</strong>补丁？此操作不可恢复。
+      </p>
+    </div>
+    <template #footer>
+      <div class="patch-dialog-footer">
+        <OButton variant="outline" color="primary" size="medium" round="pill" @click="batchDeleteDialog.visible = false">取消</OButton>
+        <OButton variant="solid" color="danger" size="medium" round="pill" @click="confirmBatchDelete">确认删除</OButton>
+      </div>
+    </template>
+  </ODialog>
 </template>
 
 <style lang="scss" scoped>
@@ -570,72 +828,45 @@ const handleExport = (type: 'all' | 'selected') => {
   // - table-wrap overflow: scroll 强制显示滚动条（不依赖溢出探测）
   // table-wrap：不需要设 overflow，由非 scoped CSS 让 OTable 内部滚动
   &__table-wrap {
-    margin-bottom: var(--o-r-gap-3);
+    margin-bottom: var(--o-r-gap-5);
   }
 
-  // 单元格内容样式
-  &__cell-title {
-    color: var(--o-color-info1);
+  &__cell-text {
+    color: var(--o-color-info2);
     font-size: var(--o-r-font_size-tip1);
-    font-weight: var(--o-font_weight-regular);
-    // 最大宽度限制，超长折行
-    max-width: 110px;
-    display: block;
-    word-break: break-all;
-  }
-  &__cell-desc {
-    font-size: var(--o-r-font_size-tip1);
-    max-width: 160px;
+    line-height: var(--o-r-line_height-tip1);
+    max-width: 180px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  &__cell-mono {
-    font-size: var(--o-r-font_size-tip1);
-    font-family: var(--o-font_family-code);
-    white-space: nowrap;
-  }
-  &__cell-link {
-    font-size: var(--o-r-font_size-tip1);
-    white-space: nowrap;
-  }
-  &__cell-hash {
+
+  &__cell-id {
     color: var(--o-color-info3);
     font-size: var(--o-r-font_size-tip2);
     font-family: var(--o-font_family-code);
-    max-width: 120px;
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  &__pr-url {
-    font-size: var(--o-r-font_size-tip2);
-    word-break: break-all;
-    display: block;
-    line-height: var(--o-r-line_height-tip2);
-  }
-  &__muted {
-    color: var(--o-color-info3);
-    font-size: var(--o-r-font_size-tip1);
-    white-space: nowrap;
-  }
-  &__dash {
-    color: var(--o-color-info4);
-    font-size: var(--o-r-font_size-tip1);
-  }
-  &__action-cell {
-    display: flex;
-    gap: var(--o-r-gap-2);
     white-space: nowrap;
   }
 
-  // ── 底部栏：ODivider light（color-control4，同级分隔）
+  &__muted {
+    color: var(--o-color-info3);
+    font-size: var(--o-r-font_size-tip1);
+  }
+
+  &__link {
+    color: var(--o-color-primary1);
+    font-size: var(--o-r-font_size-tip1);
+    line-height: var(--o-r-line_height-tip1);
+    word-break: break-all;
+    display: block;
+  }
+
   &__bottom {
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    margin-top: var(--o-r-gap-5);
     padding-top: var(--o-r-gap-4);
     border-top: 1px solid var(--o-color-control4);
   }
@@ -653,22 +884,21 @@ const handleExport = (type: 'all' | 'selected') => {
 ──────────────────────────────────────────────────────────────────────── */
 .patch-board__table-wrap .o-table-wrap {
   overflow-x: auto;
-  overflow-y: hidden; /* 保留原来的 hidden-y，不影响布局 */
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
 }
-/* 21 列的表格至少 2000px；min-width 防止 width:100% 把列压缩到视口宽度 */
 .patch-board__table-wrap table {
-  min-width: 2632px;
-  table-layout: fixed;  /* 严格按 column style.width 渲染，不自动撑宽 */
-  word-break: break-all; /* 超长文字在列内换行，不破坏列宽 */
+  min-width: 3042px;
 }
-/* th：允许换行，不截断，列头完整显示 */
 .patch-board__table-wrap th {
+  white-space: nowrap;
+}
+.patch-board__table-wrap td {
   white-space: normal;
   word-break: break-word;
-}
-/* td：数据单元格保持截断（防止长内容撑坏列宽）*/
-.patch-board__table-wrap td {
+  padding: 8px 12px;
+  line-height: var(--o-r-line_height-tip1);
+  vertical-align: top;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -681,11 +911,25 @@ const handleExport = (type: 'all' | 'selected') => {
   overflow: visible;
   vertical-align: middle;
 }
-.patch-board__action-cell { display: flex; align-items: center; gap: var(--o-r-gap-3); white-space: nowrap; padding: 0 var(--o-r-gap-4); }
-/* 强制文字在列内允许换行（适用于 commit/描述等需要折行的列） */
-.patch-board__table-wrap td .patch-board__cell-desc,
-.patch-board__table-wrap td .patch-board__cell-title {
-  word-break: break-all;
-  white-space: normal;
+.patch-board__table-wrap th:first-child,
+.patch-board__table-wrap td:first-child {
+  overflow: visible;
+  text-align: center;
+  padding-left: 16px;
 }
+.patch-board__action-cell { display: flex; align-items: center; gap: var(--o-r-gap-3); white-space: nowrap; padding: 0 var(--o-r-gap-4); }
+.patch-delete-body__text { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); }
+.patch-dialog-footer { display: flex; justify-content: flex-end; gap: var(--o-r-gap-3); }
+.patch-delete-body { padding: var(--o-r-gap-3) 0; }
+.patch-delete-body__text strong { color: var(--o-color-danger1); }
+
+.patch-form { display: flex; flex-direction: column; gap: var(--o-r-gap-5); max-height: 60vh; overflow-y: auto; padding-right: var(--o-r-gap-2); }
+.patch-form__section-title { display: flex; align-items: center; gap: var(--o-r-gap-2); color: var(--o-color-info1); font-size: var(--o-r-font_size-text1); font-weight: var(--o-font_weight-bold); }
+.patch-form__bar { display: inline-block; width: 4px; height: 16px; background-color: var(--o-color-primary1); border-radius: 2px; flex-shrink: 0; }
+.patch-form__grid { display: flex; flex-wrap: wrap; gap: var(--o-r-gap-4) var(--o-r-grid-column-gutter); }
+.patch-form__field { width: calc(50% - var(--o-r-grid-column-gutter) / 2); display: flex; flex-direction: column; gap: var(--o-r-gap-2); }
+.patch-form__field--full { width: 100%; }
+.patch-form__label { color: var(--o-color-info2); font-size: var(--o-r-font_size-tip1); font-weight: var(--o-font_weight-regular); }
+.patch-form__required { color: var(--o-color-danger1); margin-right: var(--o-r-gap-1); }
+
 </style>

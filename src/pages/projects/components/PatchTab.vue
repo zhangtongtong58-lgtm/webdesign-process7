@@ -54,29 +54,29 @@ const onPageChange = (val: { page: number; pageSize: number }) => {
 // 22 列（含勾选列）— 宽度基于实际内容平均长度测算（见 pixel 注释）
 const columns = computed(() => {
   const base = [
-    { label: '', key: 'select', style: { width: '72px', minWidth: '72px' } },
-    { label: '概述(SR粒度)',        key: 'title',               style: { width: '160px', minWidth: '160px' } },
-    { label: '功能介绍(AR粒度)',    key: 'description',         style: { width: '180px', minWidth: '180px' } },
-    { label: '关联社区Issue',       key: 'communityIssue',      style: { width: '110px', minWidth: '110px' } },
-    { label: '补丁类型',            key: 'patchType',           style: { width: '100px', minWidth: '100px' } },
-    { label: '产品版本',            key: 'productVersion',      style: { width: '80px',  minWidth: '80px'  } },
-    { label: '用户态/内核态',       key: 'userKernel',          style: { width: '80px',  minWidth: '80px'  } },
-    { label: '补丁模块',            key: 'patchModule',         style: { width: '80px',  minWidth: '80px'  } },
-    { label: 'Commit OE',          key: 'commitOE',            style: { width: '200px', minWidth: '200px' } },
-    { label: 'Commit ID OE',       key: 'commitIdOE',          style: { width: '140px', minWidth: '140px' } },
-    { label: 'PR前、后置补丁',      key: 'prRelated',           style: { width: '100px', minWidth: '100px' } },
-    { label: 'OE Merge tag',       key: 'oeMergeTag',          style: { width: '120px', minWidth: '120px' } },
-    { label: 'OE PR',              key: 'oePR',               style: { width: '200px', minWidth: '200px' } },
-    { label: 'Commit upstream',    key: 'commitUpstream',      style: { width: '140px', minWidth: '140px' } },
-    { label: 'upstream Merge tag', key: 'upstreamMergeTag',    style: { width: '130px', minWidth: '130px' } },
-    { label: '唯一标识符',                key: 'mainKey',             style: { width: '110px', minWidth: '110px' } },
-    { label: '是否需要合入',        key: 'merged',              style: { width: '80px',  minWidth: '80px'  } },
-    { label: '客户影响',            key: 'customerImpact',      style: { width: '120px', minWidth: '120px' } },
-    { label: '华为合入状态',        key: 'hwRepoStatus',        style: { width: '100px', minWidth: '100px' } },
-    { label: '客户合入状态',        key: 'customerMergeStatus', style: { width: '100px', minWidth: '100px' } },
-    { label: '合入版本',            key: 'mergeVersion',        style: { width: '100px', minWidth: '100px' } },
-    { label: 'OS发布版本',          key: 'osReleaseVersion',    style: { width: '120px', minWidth: '120px' } },
-    ...(isAdmin.value ? [{ label: '操作', key: 'action', style: { width: '150px', minWidth: '150px' } }] : []),
+    { label: '', key: 'select', width: 72, minWidth: 72 },
+    { label: '概述(SR粒度)', key: 'title', width: 160, minWidth: 160 },
+    { label: '功能介绍(AR粒度)', key: 'description', width: 180, minWidth: 180 },
+    { label: '关联社区Issue', key: 'communityIssue', width: 130, minWidth: 130 },
+    { label: '补丁类型', key: 'patchType', width: 100, minWidth: 100 },
+    { label: '产品版本', key: 'productVersion', width: 100, minWidth: 100 },
+    { label: '用户态/内核态', key: 'userKernel', width: 120, minWidth: 120 },
+    { label: '补丁模块', key: 'patchModule', width: 100, minWidth: 100 },
+    { label: 'Commit OE', key: 'commitOE', width: 200, minWidth: 200 },
+    { label: 'Commit ID OE', key: 'commitIdOE', width: 140, minWidth: 140 },
+    { label: 'PR前、后置补丁', key: 'prRelated', width: 140, minWidth: 140 },
+    { label: 'OE Merge tag', key: 'oeMergeTag', width: 120, minWidth: 120 },
+    { label: 'OE PR', key: 'oePR', width: 200, minWidth: 200 },
+    { label: 'Commit upstream', key: 'commitUpstream', width: 150, minWidth: 150 },
+    { label: 'upstream Merge tag', key: 'upstreamMergeTag', width: 140, minWidth: 140 },
+    { label: '唯一标识符', key: 'mainKey', width: 130, minWidth: 130 },
+    { label: '是否需要合入', key: 'merged', width: 120, minWidth: 120 },
+    { label: '客户影响', key: 'customerImpact', width: 120, minWidth: 120 },
+    { label: '华为合入状态', key: 'hwRepoStatus', width: 120, minWidth: 120 },
+    { label: '客户合入状态', key: 'customerMergeStatus', width: 120, minWidth: 120 },
+    { label: '合入版本', key: 'mergeVersion', width: 100, minWidth: 100 },
+    { label: 'OS发布版本', key: 'osReleaseVersion', width: 120, minWidth: 120 },
+    ...(isAdmin.value ? [{ label: '操作', key: 'action', width: 150, minWidth: 150 }] : []),
   ]
   return base
 })
@@ -179,6 +179,18 @@ const handleViewCases = () => {
 
 // ─── 批量删除弹窗 ──────────────────────────────────────────────────────────────
 const batchDeleteDialog = reactive({ visible: false })
+const deleteDialog = reactive({ visible: false, targetId: '', targetTitle: '' })
+
+const handleDelete = (row: any) => {
+  deleteDialog.targetId = row.id
+  deleteDialog.targetTitle = row.title
+  deleteDialog.visible = true
+}
+
+const confirmDelete = () => {
+  OMessage.success(`补丁「${deleteDialog.targetTitle}」已删除`)
+  deleteDialog.visible = false
+}
 
 const handleBatchDelete = () => {
   if (!selectedIds.value.length) { OMessage.warning('请先勾选要删除的补丁'); return }
@@ -192,9 +204,8 @@ const confirmBatchDelete = () => {
 }
 
 // ─── 新增补丁弹窗 ──────────────────────────────────────────────────────────────
-// 包含除主键外的所有字段；主键由系统自动生成
 interface AddPatchForm {
-  title: string; description: string; communityIssue: string
+  mainKey: string; title: string; description: string; communityIssue: string
   patchType: string; productVersion: string; userKernel: string; patchModule: string
   commitOE: string; commitIdOE: string; prRelated: string; oeMergeTag: string; oePR: string
   commitUpstream: string; upstreamMergeTag: string
@@ -203,12 +214,54 @@ interface AddPatchForm {
 }
 
 const EMPTY_FORM: AddPatchForm = {
-  title: '', description: '', communityIssue: '',
+  mainKey: '', title: '', description: '', communityIssue: '',
   patchType: '', productVersion: '', userKernel: '', patchModule: '',
   commitOE: '', commitIdOE: '', prRelated: '', oeMergeTag: '', oePR: '',
   commitUpstream: '', upstreamMergeTag: '',
   merged: '', customerImpact: '', hwRepoStatus: '',
   customerMergeStatus: '', mergeVersion: '', osReleaseVersion: '',
+}
+
+const editDialog = reactive({
+  visible: false,
+  form: { ...EMPTY_FORM } as AddPatchForm,
+  targetId: '',
+  targetTitle: '',
+})
+
+const handleEdit = (row: any) => {
+  editDialog.targetId = row.id
+  editDialog.targetTitle = row.title
+  Object.assign(editDialog.form, {
+    mainKey: row.mainKey ?? '',
+    title: row.title ?? '',
+    description: row.description ?? '',
+    communityIssue: row.communityIssue ?? '',
+    patchType: row.patchType ?? '',
+    productVersion: row.productVersion ?? '',
+    userKernel: row.userKernel ?? '',
+    patchModule: row.patchModule ?? '',
+    commitOE: row.commitOE ?? '',
+    commitIdOE: row.commitIdOE ?? '',
+    prRelated: row.prRelated ?? '',
+    oeMergeTag: row.oeMergeTag ?? '',
+    oePR: row.oePR ?? '',
+    commitUpstream: row.commitUpstream ?? '',
+    upstreamMergeTag: row.upstreamMergeTag ?? '',
+    merged: String(row.merged) ?? '',
+    customerImpact: row.customerImpact ?? '',
+    hwRepoStatus: row.hwRepoStatus ?? '',
+    customerMergeStatus: row.customerMergeStatus ?? '',
+    mergeVersion: row.mergeVersion ?? '',
+    osReleaseVersion: row.osReleaseVersion ?? '',
+  })
+  editDialog.visible = true
+}
+
+const handleEditConfirm = () => {
+  if (!editDialog.form.title.trim()) { OMessage.warning('概述(SR粒度)不能为空'); return }
+  OMessage.success(`补丁「${editDialog.targetTitle}」已更新`)
+  editDialog.visible = false
 }
 
 const addDialog = reactive({
@@ -222,6 +275,7 @@ const openAddDialog = () => {
 }
 
 const handleAddConfirm = () => {
+  if (!addDialog.form.mainKey.trim()) { OMessage.warning('唯一标识符不能为空'); return }
   if (!addDialog.form.title.trim()) { OMessage.warning('概述(SR粒度)不能为空'); return }
   if (!addDialog.form.patchType)    { OMessage.warning('请选择补丁类型'); return }
   if (!addDialog.form.productVersion) { OMessage.warning('请选择产品版本'); return }
@@ -262,7 +316,16 @@ const handleExport = (type: 'all' | 'selected') => {
     <!-- 目标仓库地址（仅补丁看板显示） -->
     <div class="patch-tab__repo-row">
       <span class="patch-tab__repo-label">目标仓库</span>
-      <OLink v-if="props.targetRepo" color="primary" :href="props.targetRepo" target="_blank" class="patch-tab__repo-link">{{ props.targetRepo }}</OLink>
+      <OLink v-if="props.targetRepo" color="primary" :href="props.targetRepo" target="_blank" class="patch-tab__repo-link">
+        {{ props.targetRepo }}
+        <template #suffix>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 2H14V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 2L9 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M13 9V13C13 13.5304 12.7893 14.0391 12.4142 14.4142C12.0391 14.7893 11.5304 15 11 15H3C2.46957 15 1.96086 14.7893 1.58579 14.4142C1.21071 14.0391 1 13.5304 1 13V5C1 4.46957 1.21071 3.96086 1.58579 3.58579C1.96086 3.21071 2.46957 3 3 3H7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </template>
+      </OLink>
       <span v-else class="patch-tab__muted">—</span>
     </div>
 
@@ -293,17 +356,17 @@ const handleExport = (type: 'all' | 'selected') => {
       </div>
 
       <div class="patch-tab__actions">
-        <OButton v-if="isAdmin" variant="solid" color="primary" size="medium" @click="openAddDialog">
+        <OButton v-if="isAdmin" variant="outline" color="primary" size="medium" round="pill" @click="openAddDialog">
           {{ t('patch.create') }}
         </OButton>
-        <OButton variant="outline" size="medium" @click="handleMerge()">
+        <OButton variant="outline" color="primary" size="medium" round="pill" @click="handleMerge()">
           {{ t('patch.merge') }}
         </OButton>
-        <OButton variant="outline" size="medium" @click="handleViewCases()">
+        <OButton variant="outline" color="primary" size="medium" round="pill" @click="handleViewCases()">
           {{ t('patch.viewCases') }}
         </OButton>
         <ODropdown v-if="isAdmin" trigger="click">
-          <OButton variant="outline" size="medium">
+          <OButton variant="outline" color="primary" size="medium" round="pill">
             更多操作
             <template #suffix>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -354,6 +417,13 @@ const handleExport = (type: 'all' | 'selected') => {
         <template #td_oePR="{ row }">
           <OLink v-if="row.oePR" color="primary" :href="row.oePR" target="_blank" class="patch-tab__link">
             {{ row.oePR }}
+            <template #suffix>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 2H14V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 2L9 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M13 9V13C13 13.5304 12.7893 14.0391 12.4142 14.4142C12.0391 14.7893 11.5304 15 11 15H3C2.46957 15 1.96086 14.7893 1.58579 14.4142C1.21071 14.0391 1 13.5304 1 13V5C1 4.46957 1.21071 3.96086 1.58579 3.58579C1.96086 3.21071 2.46957 3 3 3H7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </template>
           </OLink>
           <span v-else class="patch-tab__muted">—</span>
         </template>
@@ -381,12 +451,12 @@ const handleExport = (type: 'all' | 'selected') => {
         <template #td_osReleaseVersion="{ row }">
           <span class="patch-tab__muted">{{ row.osReleaseVersion || '—' }}</span>
         </template>
-        <template v-if="isAdmin" #td_action>
-          <div class="patch-tab__action-cell">
-            <OLink color="primary" href="javascript:void(0)">{{ t('action.edit') }}</OLink>
-            <OLink color="danger" href="javascript:void(0)">{{ t('action.delete') }}</OLink>
-          </div>
-        </template>
+        <template v-if="isAdmin" #td_action="{ row }">
+           <div class="patch-tab__action-cell">
+             <OLink color="primary" href="javascript:void(0)" @click="handleEdit(row)">{{ t('action.edit') }}</OLink>
+             <OLink color="danger" href="javascript:void(0)" @click="handleDelete(row)">{{ t('action.delete') }}</OLink>
+           </div>
+         </template>
       </OTable>
     </div>
 
@@ -408,7 +478,16 @@ const handleExport = (type: 'all' | 'selected') => {
               :href="line.trim()"
               target="_blank"
               class="merge-dialog-body__link"
-            >{{ line.trim() }}</OLink>
+            >
+              {{ line.trim() }}
+              <template #suffix>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M10 2H14V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M14 2L9 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M13 9V13C13 13.5304 12.7893 14.0391 12.4142 14.4142C12.0391 14.7893 11.5304 15 11 15H3C2.46957 15 1.96086 14.7893 1.58579 14.4142C1.21071 14.0391 1 13.5304 1 13V5C1 4.46957 1.21071 3.96086 1.58579 3.58579C1.96086 3.21071 2.46957 3 3 3H7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </template>
+            </OLink>
           </div>
         </template>
         <template v-else>
@@ -419,6 +498,154 @@ const handleExport = (type: 'all' | 'selected') => {
       </div>
     </ODialog>
   </div>
+
+  <!-- ══ 编辑补丁弹窗 ════════════════════════════════════════════════════════ -->
+  <ODialog v-model:visible="editDialog.visible" title="编辑补丁" size="large">
+    <div class="patch-form">
+      <div class="patch-form__section-title"><span class="patch-form__bar" />基本信息</div>
+      <div class="patch-form__grid">
+        <div class="patch-form__field">
+          <label class="patch-form__label">唯一标识符</label>
+          <OInput v-model="editDialog.form.mainKey" placeholder="例：321138:13916" clearable />
+        </div>
+        <div class="patch-form__field patch-form__field--full">
+          <label class="patch-form__label"><span class="patch-form__required">*</span>概述（SR粒度）</label>
+          <OInput v-model="editDialog.form.title" placeholder="请输入补丁概述" clearable />
+        </div>
+        <div class="patch-form__field patch-form__field--full">
+          <label class="patch-form__label">功能介绍（AR粒度）</label>
+          <OTextarea v-model="editDialog.form.description" placeholder="请详细描述功能" :rows="3" />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">补丁类型</label>
+          <OSelect v-model="editDialog.form.patchType" placeholder="请选择">
+            <OOption value="Bug" label="Bug" />
+            <OOption value="Feature" label="Feature" />
+            <OOption value="cleanup" label="Cleanup" />
+          </OSelect>
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">产品版本</label>
+          <OSelect v-model="editDialog.form.productVersion" placeholder="请选择">
+            <OOption value="950" label="950" />
+            <OOption value="950Pro" label="950Pro" />
+          </OSelect>
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">用户态/内核态</label>
+          <OSelect v-model="editDialog.form.userKernel" placeholder="请选择">
+            <OOption value="用户态" label="用户态" />
+            <OOption value="内核" label="内核" />
+          </OSelect>
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">补丁模块</label>
+          <OSelect v-model="editDialog.form.patchModule" placeholder="请选择">
+            <OOption value="ACC" label="ACC" />
+            <OOption value="ZIP" label="ZIP" />
+            <OOption value="PCIe" label="PCIe" />
+            <OOption value="UACCE" label="UACCE" />
+          </OSelect>
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">关联社区Issue</label>
+          <OInput v-model="editDialog.form.communityIssue" placeholder="例：I9X2K1" clearable />
+        </div>
+      </div>
+
+      <ODivider />
+
+      <div class="patch-form__section-title"><span class="patch-form__bar" />Commit / PR 信息</div>
+      <div class="patch-form__grid">
+        <div class="patch-form__field patch-form__field--full">
+          <label class="patch-form__label">Commit OE</label>
+          <OInput v-model="editDialog.form.commitOE" placeholder="例：crypto: hisilicon - enable error reporting again" clearable />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">Commit ID OE</label>
+          <OInput v-model="editDialog.form.commitIdOE" placeholder="例：5f3a1b2c7d8e9f0a" clearable />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">OE Merge tag</label>
+          <OInput v-model="editDialog.form.oeMergeTag" placeholder="例：6.6.0-94.0.0" clearable />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">OE PR</label>
+          <OInput v-model="editDialog.form.oePR" placeholder="例：gitc URL" clearable />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">PR前、后置补丁</label>
+          <OInput v-model="editDialog.form.prRelated" clearable />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">Commit upstream</label>
+          <OInput v-model="editDialog.form.commitUpstream" placeholder="upstream commit hash" clearable />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">upstream Merge tag</label>
+          <OInput v-model="editDialog.form.upstreamMergeTag" placeholder="例：v6.18-rc1" clearable />
+        </div>
+      </div>
+
+      <ODivider />
+
+      <div class="patch-form__section-title"><span class="patch-form__bar" />合入状态</div>
+      <div class="patch-form__grid">
+        <div class="patch-form__field">
+          <label class="patch-form__label">是否需要合入</label>
+          <OSelect v-model="editDialog.form.merged" placeholder="请选择">
+            <OOption value="true" label="是" />
+            <OOption value="false" label="否" />
+          </OSelect>
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">华为合入状态</label>
+          <OSelect v-model="editDialog.form.hwRepoStatus" placeholder="请选择">
+            <OOption value="merged" label="已合入" />
+            <OOption value="unmerged" label="未合入" />
+          </OSelect>
+        </div>
+        <div class="patch-form__field patch-form__field--full">
+          <label class="patch-form__label">客户影响</label>
+          <OTextarea v-model="editDialog.form.customerImpact" placeholder="描述此补丁对客户的影响" :rows="2" />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">客户侧合入状态<span class="patch-form__hint">（客户录入）</span></label>
+          <OInput v-model="editDialog.form.customerMergeStatus" placeholder="例：已合入" clearable />
+        </div>
+        <div class="patch-form__field">
+          <label class="patch-form__label">合入版本<span class="patch-form__hint">（客户录入）</span></label>
+          <OInput v-model="editDialog.form.mergeVersion" placeholder="例：main-5.10" clearable />
+        </div>
+        <div class="patch-form__field patch-form__field--full">
+          <label class="patch-form__label">OS发布版本<span class="patch-form__hint">（客户录入）</span></label>
+          <OInput v-model="editDialog.form.osReleaseVersion" placeholder="例：24.03-LTS" clearable />
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="patch-dialog-footer">
+        <OButton variant="outline" size="medium" @click="editDialog.visible = false">取消</OButton>
+        <OButton variant="solid" color="primary" size="medium" @click="handleEditConfirm">确认保存</OButton>
+      </div>
+    </template>
+  </ODialog>
+
+  <!-- ══ 单条删除确认弹窗 ════════════════════════════════════════════════════════ -->
+  <ODialog v-model:visible="deleteDialog.visible" title="确认删除" size="small">
+    <div class="batch-delete-body">
+      <p class="batch-delete-body__text">
+        确认删除补丁「<strong>{{ deleteDialog.targetTitle }}</strong>」？此操作不可恢复。
+      </p>
+    </div>
+    <template #footer>
+      <div class="patch-dialog-footer">
+        <OButton variant="outline" size="medium" @click="deleteDialog.visible = false">取消</OButton>
+        <OButton variant="solid" color="danger" size="medium" @click="confirmDelete">确认删除</OButton>
+      </div>
+    </template>
+  </ODialog>
 
   <!-- ══ 批量删除确认弹窗 ════════════════════════════════════════════════════════
        ODialog size="small" + 二次确认文字 + 取消/删除按钮
@@ -437,7 +664,7 @@ const handleExport = (type: 'all' | 'selected') => {
     </template>
   </ODialog>
   ══ -->
-  <ODialog v-model:visible="addDialog.visible" title="新增补丁" size="large">
+   <ODialog v-model:visible="addDialog.visible" title="新增补丁" size="large">
     <div class="patch-form">
 
       <!-- 基本信息 -->
@@ -445,6 +672,10 @@ const handleExport = (type: 'all' | 'selected') => {
         <span class="patch-form__bar" />基本信息
       </div>
       <div class="patch-form__grid">
+        <div class="patch-form__field">
+          <label class="patch-form__label"><span class="patch-form__required">*</span>唯一标识符</label>
+          <OInput v-model="addDialog.form.mainKey" placeholder="例：321138:13916" clearable />
+        </div>
         <div class="patch-form__field patch-form__field--full">
           <label class="patch-form__label"><span class="patch-form__required">*</span>概述（SR粒度）</label>
           <OInput v-model="addDialog.form.title" placeholder="请输入补丁概述" clearable />
@@ -657,6 +888,15 @@ const handleExport = (type: 'all' | 'selected') => {
     align-items: center;
     gap: var(--o-r-gap-3);
     flex-shrink: 0;
+
+    // 按钮 hover 态：描边变实心填充
+    :deep(.o-button--outline) {
+      &:hover {
+        background-color: var(--o-color-primary1) !important;
+        color: var(--o-white) !important;
+        border-color: var(--o-color-primary1) !important;
+      }
+    }
   }
   &__table-wrap {
     margin-bottom: var(--o-r-gap-5);
@@ -809,17 +1049,17 @@ const handleExport = (type: 'all' | 'selected') => {
   -webkit-overflow-scrolling: touch;
 }
 .patch-tab__table-wrap table {
-  min-width: 2772px;
-  table-layout: fixed;
-  word-break: break-all;
+  min-width: 3042px;
 }
-/* th：允许换行，不截断，列头完整显示 */
 .patch-tab__table-wrap th {
+  white-space: nowrap;
+}
+.patch-tab__table-wrap td {
   white-space: normal;
   word-break: break-word;
-}
-/* td 数据单元格截断——跳过第一列（checkbox 列），防止复选框被 overflow:hidden 裁掉 */
-.patch-tab__table-wrap td:not(:first-child) {
+  padding: 8px 12px;
+  line-height: var(--o-r-line_height-tip1);
+  vertical-align: top;
   overflow: hidden;
   text-overflow: ellipsis;
 }

@@ -6,7 +6,7 @@ import {
   OSwitch, OUpload, ODropdown, ODivider,
 } from '@opensig/opendesign'
 import { useAuth } from '../../../composables/useAuth'
-import { MOCK_TEST_CASES, type TestCase } from '../../../mock/data'
+import { MOCK_TEST_CASES, MOCK_PATCHES, type TestCase } from '../../../mock/data'
 import { t } from '../../../i18n/zh'
 
 // patchIds：从补丁看板"查看对应用例"传入，非空时只显示关联用例
@@ -22,6 +22,9 @@ const filters = reactive<{
 const applied = reactive({ ...filters })
 
 const moduleOptions = [{ value: 'ACC', label: 'ACC' }, { value: 'ZIP', label: 'ZIP' }, { value: 'PCIe', label: 'PCIe' }, { value: 'UACCE', label: 'UACCE' }]
+const mainKeyOptions = computed(() =>
+  [...new Set(MOCK_PATCHES.filter(p => p.projectId === props.projectId).map(p => p.mainKey))].sort().map(k => ({ value: k, label: k }))
+)
 const levelOptions    = [
   { value: 'Level 1', label: 'Level 1' }, { value: 'Level 1/2', label: 'Level 1/2' },
   { value: 'Level 0/1/2/3', label: 'Level 0/1/2/3' }, { value: 'Level 2', label: 'Level 2' },
@@ -71,34 +74,35 @@ const stats = computed(() => [
 const columns = computed(() => {
   if (!isAdmin.value) {
     return [
-      { label: '', key: 'select', style: { width: '72px', minWidth: '72px' } },
-      { label: '名称', key: 'name', style: { width: '160px', minWidth: '160px' } },
-      { label: '用例模块', key: 'testCaseModule', style: { width: '100px', minWidth: '100px' } },
-      { label: '最后一次执行结果', key: 'lastExecResult', style: { width: '140px', minWidth: '140px' } },
+      { label: '', key: 'select', width: 72, minWidth: 72 },
+      { label: '名称', key: 'name', width: 160, minWidth: 160 },
+      { label: '用例模块', key: 'testCaseModule', width: 100, minWidth: 100 },
+      { label: '最后一次执行结果', key: 'lastExecResult', width: 140, minWidth: 140 },
     ]
   }
   return [
-    { label: '', key: 'select', style: { width: '72px', minWidth: '72px' } },
-    { label: '名称', key: 'name', style: { width: '140px', minWidth: '140px' } },
-    { label: '编号', key: 'testId', style: { width: '140px', minWidth: '140px' } },
-    { label: '级别', key: 'level', style: { width: '100px', minWidth: '100px' } },
-    { label: '预置条件', key: 'precondition', style: { width: '200px', minWidth: '200px' } },
-    { label: '测试步骤', key: 'testSteps', style: { width: '200px', minWidth: '200px' } },
-    { label: '预期结果', key: 'expectedResult', style: { width: '180px', minWidth: '180px' } },
-    { label: '自动化脚本/路径', key: 'automationScript', style: { width: '240px', minWidth: '240px' } },
-    { label: '最后一次执行结果', key: 'lastExecResult', style: { width: '120px', minWidth: '120px' } },
-    { label: '用例模块', key: 'testCaseModule', style: { width: '80px', minWidth: '80px' } },
-    { label: '最后执行人', key: 'lastExecutor', style: { width: '100px', minWidth: '100px' } },
-    { label: '测试类型', key: 'testType', style: { width: '80px', minWidth: '80px' } },
-    { label: '自动化类型', key: 'isAutomated', style: { width: '90px', minWidth: '90px' } },
-    { label: '操作', key: 'action', style: { width: '90px', minWidth: '90px' } },
+    { label: '', key: 'select', width: 72, minWidth: 72 },
+    { label: '名称', key: 'name', width: 140, minWidth: 140 },
+    { label: '编号', key: 'testId', width: 140, minWidth: 140 },
+    { label: '唯一标识符', key: 'mainKey', width: 110, minWidth: 110 },
+    { label: '级别', key: 'level', width: 100, minWidth: 100 },
+    { label: '预置条件', key: 'precondition', width: 200, minWidth: 200 },
+    { label: '测试步骤', key: 'testSteps', width: 200, minWidth: 200 },
+    { label: '预期结果', key: 'expectedResult', width: 180, minWidth: 180 },
+    { label: '自动化脚本/路径', key: 'automationScript', width: 240, minWidth: 240 },
+    { label: '最后一次执行结果', key: 'lastExecResult', width: 160, minWidth: 160 },
+    { label: '用例模块', key: 'testCaseModule', width: 100, minWidth: 100 },
+    { label: '最后执行人', key: 'lastExecutor', width: 120, minWidth: 120 },
+    { label: '测试类型', key: 'testType', width: 100, minWidth: 100 },
+    { label: '自动化类型', key: 'isAutomated', width: 120, minWidth: 120 },
+    { label: '操作', key: 'action', width: 150, minWidth: 150 },
   ]
 })
 
-const tableMinWidth = computed(() => columns.value.reduce((sum, c) => {
-  const w = c.style?.width ? parseInt(String(c.style.width)) : 100
-  return sum + w
-}, 0) + 'px')
+const tableMinWidth = computed(() => {
+  // 固定表格宽度：非管理员 2892px，管理员 3282px
+  return isAdmin.value ? '3282px' : '2892px'
+})
 
 const execColor = (r: string) =>
   ({ passed: 'success', fail: 'danger', block: 'warning', unavailable: 'normal', pending: 'info' }[r] ?? 'info')
@@ -132,13 +136,13 @@ const allChecked = computed({
 // ─── 新增用例弹窗 ──────────────────────────────────────────────────────────────
 // 包含除"最后一次执行结果"和"最后执行人"外的所有字段
 interface AddCaseForm {
-  name: string; testId: string; level: string
+  name: string; testId: string; mainKey: string; level: string
   precondition: string; testSteps: string; expectedResult: string
   automationScript: string; testCaseModule: string; testType: string; isAutomated: string
 }
 
 const EMPTY_CASE: AddCaseForm = {
-  name: '', testId: '', level: '',
+  name: '', testId: '', mainKey: '', level: '',
   precondition: '', testSteps: '', expectedResult: '',
   automationScript: '', testCaseModule: '', testType: '', isAutomated: '',
 }
@@ -153,6 +157,7 @@ const openAddDialog = () => {
 const handleAddConfirm = () => {
   if (!addDialog.form.name.trim()) { OMessage.warning('用例名称不能为空'); return }
   if (!addDialog.form.testId.trim()) { OMessage.warning('编号不能为空'); return }
+  if (!addDialog.form.mainKey) { OMessage.warning('请选择唯一标识符'); return }
   if (!addDialog.form.testType) { OMessage.warning('请选择测试类型'); return }
   OMessage.success('用例新增成功')
   addDialog.visible = false
@@ -207,8 +212,52 @@ const handleRun = () => {
   }))
 }
 
+const editDialog = reactive({
+  visible: false,
+  form: { ...EMPTY_CASE } as AddCaseForm,
+  targetId: '',
+  targetName: '',
+})
+
+const handleEdit = (row: any) => {
+  editDialog.targetId = row.id
+  editDialog.targetName = row.name
+  Object.assign(editDialog.form, {
+    name: row.name ?? '',
+    testId: row.testId ?? '',
+    mainKey: row.mainKey ?? '',
+    level: row.level ?? '',
+    precondition: row.precondition ?? '',
+    testSteps: row.testSteps ?? '',
+    expectedResult: row.expectedResult ?? '',
+    automationScript: row.automationScript ?? '',
+    testCaseModule: row.testCaseModule ?? '',
+    testType: row.testType ?? '',
+    isAutomated: String(row.isAutomated) ?? '',
+  })
+  editDialog.visible = true
+}
+
+const handleEditConfirm = () => {
+  if (!editDialog.form.name.trim()) { OMessage.warning('用例名称不能为空'); return }
+  OMessage.success(`用例「${editDialog.targetName}」已更新`)
+  editDialog.visible = false
+}
+
 // ─── 批量删除 ─────────────────────────────────────────────────────────────────
 const batchDeleteDialog = reactive({ visible: false })
+const deleteDialog = reactive({ visible: false, targetId: '', targetName: '' })
+
+const handleDelete = (row: any) => {
+  deleteDialog.targetId = row.id
+  deleteDialog.targetName = row.name
+  deleteDialog.visible = true
+}
+
+const confirmDelete = () => {
+  OMessage.success(`用例「${deleteDialog.targetName}」已删除`)
+  deleteDialog.visible = false
+}
 
 const handleBatchDelete = () => {
   if (!selectedIds.value.length) { OMessage.warning('请先勾选要删除的用例'); return }
@@ -265,14 +314,14 @@ const confirmBatchDelete = () => {
       </div>
 
       <div class="tc-tab__actions">
-        <OButton v-if="isAdmin" variant="solid" color="primary" size="medium" @click="openAddDialog">
+        <OButton v-if="isAdmin" variant="outline" color="primary" size="medium" round="pill" @click="openAddDialog">
           {{ t('tc.create') }}
         </OButton>
-        <OButton variant="outline" size="medium" @click="handleRun()">
+        <OButton variant="outline" color="primary" size="medium" round="pill" @click="handleRun()">
           执行测试
         </OButton>
         <ODropdown v-if="isAdmin" trigger="click">
-          <OButton variant="outline" size="medium">
+          <OButton variant="outline" color="primary" size="medium" round="pill">
             更多操作
             <template #suffix>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -307,6 +356,9 @@ const confirmBatchDelete = () => {
         <template #td_testId="{ row }">
           <span class="tc-tab__cell-id">{{ row.testId }}</span>
         </template>
+        <template #td_mainKey="{ row }">
+          <span class="tc-tab__cell-id">{{ row.mainKey }}</span>
+        </template>
         <template #td_level="{ row }">
           <OTag color="info" size="medium" variant="outline">{{ row.level }}</OTag>
         </template>
@@ -339,12 +391,12 @@ const confirmBatchDelete = () => {
         <template #td_testCaseModule="{ row }">
           <span class="tc-tab__cell-plain">{{ row.testCaseModule }}</span>
         </template>
-        <template v-if="isAdmin" #td_action>
-          <div class="tc-tab__action-cell">
-            <OLink color="primary" href="javascript:void(0)">{{ t('action.edit') }}</OLink>
-            <OLink color="danger" href="javascript:void(0)">{{ t('action.delete') }}</OLink>
-          </div>
-        </template>
+        <template v-if="isAdmin" #td_action="{ row }">
+           <div class="tc-tab__action-cell">
+             <OLink color="primary" href="javascript:void(0)" @click="handleEdit(row)">{{ t('action.edit') }}</OLink>
+             <OLink color="danger" href="javascript:void(0)" @click="handleDelete(row)">{{ t('action.delete') }}</OLink>
+           </div>
+         </template>
       </OTable>
     </div>
 
@@ -378,6 +430,96 @@ const confirmBatchDelete = () => {
     </ODialog>
   </div>
 
+  <!-- ══ 编辑用例弹窗 ════════════════════════════════════════════════════════ -->
+  <ODialog v-model:visible="editDialog.visible" title="编辑用例" size="large">
+    <div class="tc-form">
+      <div class="tc-form__section-title"><span class="tc-form__bar" />基本信息</div>
+      <div class="tc-form__grid">
+        <div class="tc-form__field">
+          <label class="tc-form__label"><span class="tc-form__required">*</span>用例名称</label>
+          <OInput v-model="editDialog.form.name" placeholder="请输入用例名称" clearable />
+        </div>
+        <div class="tc-form__field">
+          <label class="tc-form__label">编号</label>
+          <OInput v-model="editDialog.form.testId" placeholder="例：PCIE_DPC_FUNC_003" clearable />
+        </div>
+        <div class="tc-form__field">
+          <label class="tc-form__label">唯一标识符</label>
+          <OInput v-model="editDialog.form.mainKey" placeholder="例：321138:13916" clearable />
+        </div>
+        <div class="tc-form__field">
+          <label class="tc-form__label">级别</label>
+          <OSelect v-model="editDialog.form.level" placeholder="请选择">
+            <OOption v-for="o in levelOptions" :key="o.value" :value="o.value" :label="o.label" />
+          </OSelect>
+        </div>
+        <div class="tc-form__field">
+          <label class="tc-form__label">测试类型</label>
+          <OSelect v-model="editDialog.form.testType" placeholder="请选择">
+            <OOption v-for="o in testTypeOptions" :key="o.value" :value="o.value" :label="o.label" />
+          </OSelect>
+        </div>
+        <div class="tc-form__field">
+          <label class="tc-form__label">用例模块</label>
+          <OSelect v-model="editDialog.form.testCaseModule" placeholder="请选择">
+            <OOption v-for="o in moduleOptions" :key="o.value" :value="o.value" :label="o.label" />
+          </OSelect>
+        </div>
+        <div class="tc-form__field">
+          <label class="tc-form__label">自动化类型</label>
+          <OSelect v-model="editDialog.form.isAutomated" placeholder="请选择">
+            <OOption value="true" label="TRUE" />
+            <OOption value="false" label="FALSE" />
+          </OSelect>
+        </div>
+        <div class="tc-form__field tc-form__field--full">
+          <label class="tc-form__label">自动化脚本/路径</label>
+          <OInput v-model="editDialog.form.automationScript" placeholder="例：D06:/test_cases/pcie/test.py::TestCase::test_dpc" clearable />
+        </div>
+      </div>
+
+      <ODivider />
+
+      <div class="tc-form__section-title"><span class="tc-form__bar" />测试内容</div>
+      <div class="tc-form__grid">
+        <div class="tc-form__field tc-form__field--full">
+          <label class="tc-form__label">预置条件</label>
+          <OTextarea v-model="editDialog.form.precondition" placeholder="描述测试前的准备条件" :rows="3" />
+        </div>
+        <div class="tc-form__field tc-form__field--full">
+          <label class="tc-form__label">测试步骤</label>
+          <OTextarea v-model="editDialog.form.testSteps" placeholder="逐步描述测试操作" :rows="4" />
+        </div>
+        <div class="tc-form__field tc-form__field--full">
+          <label class="tc-form__label">预期结果</label>
+          <OTextarea v-model="editDialog.form.expectedResult" placeholder="描述期望的测试结果" :rows="3" />
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="tc-dialog-footer">
+        <OButton variant="outline" size="medium" @click="editDialog.visible = false">取消</OButton>
+        <OButton variant="solid" color="primary" size="medium" @click="handleEditConfirm">确认保存</OButton>
+      </div>
+    </template>
+  </ODialog>
+
+  <!-- ══ 单条删除确认弹窗 ════════════════════════════════════════════════════════ -->
+  <ODialog v-model:visible="deleteDialog.visible" title="确认删除" size="small">
+    <div class="tc-delete-body">
+      <p class="tc-delete-body__text">
+        确认删除用例「<strong>{{ deleteDialog.targetName }}</strong>」？此操作不可恢复。
+      </p>
+    </div>
+    <template #footer>
+      <div class="tc-dialog-footer">
+        <OButton variant="outline" size="medium" @click="deleteDialog.visible = false">取消</OButton>
+        <OButton variant="solid" color="danger" size="medium" @click="confirmDelete">确认删除</OButton>
+      </div>
+    </template>
+  </ODialog>
+
   <!-- ══ 批量删除确认弹窗 ════════════════════════════════════════════════════════ -->
   <ODialog v-model:visible="batchDeleteDialog.visible" title="确认批量删除" size="small">
     <div class="tc-delete-body">
@@ -409,6 +551,12 @@ const confirmBatchDelete = () => {
         <div class="tc-form__field">
           <label class="tc-form__label"><span class="tc-form__required">*</span>编号</label>
           <OInput v-model="addDialog.form.testId" placeholder="例：PCIE_DPC_FUNC_003" clearable />
+        </div>
+        <div class="tc-form__field">
+          <label class="tc-form__label"><span class="tc-form__required">*</span>唯一标识符</label>
+          <OSelect v-model="addDialog.form.mainKey" placeholder="请选择">
+            <OOption v-for="o in mainKeyOptions" :key="o.value" :value="o.value" :label="o.label" />
+          </OSelect>
         </div>
         <div class="tc-form__field">
           <label class="tc-form__label"><span class="tc-form__required">*</span>级别</label>
@@ -547,6 +695,15 @@ const confirmBatchDelete = () => {
     align-items: center;
     gap: var(--o-r-gap-3);
     flex-shrink: 0;
+
+    // 按钮 hover 态：描边变实心填充
+    :deep(.o-button--outline) {
+      &:hover {
+        background-color: var(--o-color-primary1) !important;
+        color: var(--o-white) !important;
+        border-color: var(--o-color-primary1) !important;
+      }
+    }
   }
   &__table-wrap {
     margin-bottom: var(--o-r-gap-5);
@@ -676,17 +833,13 @@ const confirmBatchDelete = () => {
 }
 .tc-tab__table-wrap table {
   min-width: var(--tc-table-min-width);
-  table-layout: fixed;
-  word-break: break-all;
 }
 .tc-tab__table-wrap th {
+  white-space: nowrap;
+}
+.tc-tab__table-wrap td {
   white-space: normal;
   word-break: break-word;
-}
-/* checkbox 列：不裁剪，其余 td 正常截断 */
-.tc-tab__table-wrap td:not(:first-child) {
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .tc-tab__table-wrap th:first-child,
 .tc-tab__table-wrap td:first-child {

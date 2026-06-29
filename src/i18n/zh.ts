@@ -87,6 +87,7 @@ const zh: Record<string, string> = {
   'tc.batchDelete': '批量删除',
   'tc.colName': '名称',
   'tc.colId': '编号',
+  'tc.colMainKey': '唯一标识符',
   'tc.colLevel': '级别',
   'tc.colPrecondition': '预置条件',
   'tc.colSteps': '测试步骤',

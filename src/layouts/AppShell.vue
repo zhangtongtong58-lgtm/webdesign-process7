@@ -42,14 +42,8 @@ const userInitial = computed(() => currentUser.value?.name?.charAt(0) ?? 'U')
     <header class="shell__nav">
       <!-- 左侧：品牌 + 菜单 -->
       <div class="shell__nav-left">
-        <!-- Logo：16px grid 图标 + 品牌名，对应 ONavigation Logo GROUP -->
+        <!-- 品牌名：对应 ONavigation Logo GROUP，padding: 20px 0 -->
         <div class="shell__logo">
-          <svg class="shell__logo-icon" width="28" height="28" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/>
-            <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/>
-            <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/>
-            <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/>
-          </svg>
           <span class="shell__logo-name">{{ t('app.name') }}</span>
         </div>
 
@@ -65,13 +59,9 @@ const userInitial = computed(() => currentUser.value?.name?.charAt(0) ?? 'U')
         </nav>
       </div>
 
-      <!-- 右侧：用户头像 -->
+      <!-- 右侧操作区：个人中心 -->
       <div class="shell__nav-right">
-        <div
-          class="shell__avatar"
-          :title="currentUser?.name"
-          @click="router.push('/profile')"
-        >{{ userInitial }}</div>
+        <span class="shell__nav-icon shell__nav-icon--user" role="button" aria-label="用户" @click="router.push('/profile')"></span>
       </div>
     </header>
 
@@ -118,25 +108,17 @@ const userInitial = computed(() => currentUser.value?.name?.charAt(0) ?? 'U')
     gap: 40px;
   }
 
-  // Logo 区：品牌图标 + 文字
+  // Logo 区：品牌文字，spec: padding 20px 0
   &__logo {
-    display: flex;
-    align-items: center;
-    gap: var(--o-r-gap-2);
+    padding: 20px 0;
     cursor: pointer;
     user-select: none;
   }
 
-  &__logo-icon {
-    flex-shrink: 0;
-    color: var(--o-color-primary1);
-  }
-
   &__logo-name {
-    // 品牌文字：color-info1，16px，600
-    color: var(--o-color-info1);
-    font-size: var(--o-r-font_size-text1);
-    line-height: var(--o-r-line_height-text1);
+    color: rgba(0, 0, 0, 1);
+    font-size: 16px;
+    line-height: 24px;
     font-weight: var(--o-font_weight-bold);
     white-space: nowrap;
   }
@@ -191,30 +173,32 @@ const userInitial = computed(() => currentUser.value?.name?.charAt(0) ?? 'U')
     }
   }
 
-  // 右侧操作区：间距 20px（spec 值）
+  // 右侧操作区
   &__nav-right {
     display: flex;
     align-items: center;
-    gap: 20px;
   }
 
-  // 用户头像：32px 圆形，color-primary1 填充
-  &__avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background-color: var(--o-color-primary1);
-    color: var(--o-color-white);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--o-r-font_size-tip2);
-    font-weight: var(--o-font_weight-bold);
+  // 顶导 Icon：24×24px，CSS mask 着色
+  &__nav-icon {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background-color: rgba(0, 0, 0, 0.65);
     cursor: pointer;
-    flex-shrink: 0;
-    transition: opacity var(--o-duration-s) var(--o-easing-standard);
+    padding: 0;
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+  }
 
-    &:hover { opacity: 0.85; }
+  &__nav-icon--user {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='7' r='4' stroke='black' stroke-width='1.4' fill='none'/%3E%3Cpath d='M3 18c0-3.5 3.1-6 7-6s7 2.5 7 6' stroke='black' stroke-width='1.4' fill='none'/%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='7' r='4' stroke='black' stroke-width='1.4' fill='none'/%3E%3Cpath d='M3 18c0-3.5 3.1-6 7-6s7 2.5 7 6' stroke='black' stroke-width='1.4' fill='none'/%3E%3C/svg%3E");
   }
 
   // 内容区：占满剩余高度，纵向可滚动
