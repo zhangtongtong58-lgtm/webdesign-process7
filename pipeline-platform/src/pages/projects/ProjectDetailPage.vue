@@ -43,6 +43,18 @@ const projectOptions = computed(() =>
 
 const activeTab = ref('overview')
 
+const MODULE_OPTIONS = ['ACC', 'PCIe', 'ZIP', 'UACCE', 'Crypto', 'DPC', 'Network', 'QUIC', 'HTTP3', 'KVM', 'Scheduler', 'MMU']
+
+const originalModules = ref<string[]>([])
+
+const handleEditModuleBeforeSelect = (value: string | number) => {
+  if (originalModules.value.includes(String(value)) && !editForm.modules.includes(String(value))) {
+    OMessage.warning('已有模块不可删减，只可新增')
+    return false
+  }
+  return true
+}
+
 // 跨 tab 通信：PatchTab 触发"查看对应用例"时，切换到用例看板并记录关联的 patchIds
 const viewCasePatchIds = ref<string[]>([])
 const handleViewCases = (patchIds: string[]) => {
@@ -62,6 +74,7 @@ const form = reactive({
   name: '', description: '', kernelVersion: '', osVersion: '',
   status: '', owner: '', productVersion: '', cpuArch: '', targetRepo: '',
   forkRepo: '',
+  modules: [] as string[],
   pipelineId: '', pipelineName: '',
 })
 const syncForm = () => {
@@ -73,6 +86,7 @@ const syncForm = () => {
   form.productVersion = p.productVersions[0] ?? ''; form.cpuArch = p.cpuArch
   form.targetRepo = p.targetRepo
   form.forkRepo = p.forkRepo
+  form.modules = [...p.modules]
   form.pipelineId = p.pipelineId; form.pipelineName = p.pipelineName
 }
 syncForm()
@@ -87,6 +101,7 @@ const editForm = reactive({
   name: '', description: '', kernelVersion: '', osVersion: '',
   status: '', owner: '', productVersion: '', cpuArch: '', targetRepo: '',
   forkRepo: '',
+  modules: [] as string[],
   pipelineId: '', pipelineName: '',
 })
 
@@ -99,6 +114,8 @@ const openEditDialog = () => {
   editForm.productVersion = p.productVersions[0] ?? ''; editForm.cpuArch = p.cpuArch
   editForm.targetRepo = p.targetRepo
   editForm.forkRepo = p.forkRepo
+  editForm.modules = [...p.modules]
+  originalModules.value = [...p.modules]
   editForm.pipelineId = p.pipelineId; editForm.pipelineName = p.pipelineName
   initEditingTimeline()
   editDialog.visible = true
@@ -136,6 +153,7 @@ const handleEditConfirm = () => {
   if (!editForm.name.trim()) { OMessage.warning('项目名称不能为空'); return }
   if (!editForm.targetRepo.trim()) { OMessage.warning('目标仓库不能为空'); return }
   if (!editForm.forkRepo.trim()) { OMessage.warning('Fork仓库不能为空'); return }
+  if (!editForm.modules.length) { OMessage.warning('模块不能为空'); return }
   Object.assign(form, editForm)
   const tlOk = saveTimeline()
   if (!tlOk) return
@@ -578,6 +596,7 @@ interface AddProjectForm {
   owner: string
   targetRepo: string
   forkRepo: string
+  modules: string[]
   pipelineId: string
   pipelineName: string
   // 硬件规格
@@ -595,6 +614,7 @@ const EMPTY_PROJECT: AddProjectForm = {
   status: '开发中', owner: '',
   targetRepo: '',
   forkRepo: '',
+  modules: [],
   pipelineId: '', pipelineName: '',
   productVersion: '950', cpuArch: 'x86_64',
   startDate: '',
@@ -622,6 +642,7 @@ const handleAddProjectConfirm = () => {
   if (!addProjectDialog.form.owner.trim()) { OMessage.warning('负责人不能为空'); return }
   if (!addProjectDialog.form.targetRepo.trim()) { OMessage.warning('目标仓库不能为空'); return }
   if (!addProjectDialog.form.forkRepo.trim()) { OMessage.warning('Fork仓库不能为空'); return }
+  if (!addProjectDialog.form.modules.length) { OMessage.warning('模块不能为空'); return }
   if (!addProjectDialog.form.startDate.trim()) { OMessage.warning('启动开始日期不能为空'); return }
   
   // 验证开发时间段
@@ -710,6 +731,13 @@ const handleAddProjectConfirm = () => {
               <div class="proj-detail__info-field">
                 <label class="proj-detail__info-label">流水线名称</label>
                 <span class="proj-detail__info-value">{{ project?.pipelineName || '—' }}</span>
+              </div>
+              <div class="proj-detail__info-field">
+                <label class="proj-detail__info-label">{{ t('project.moduleField') }}</label>
+                <div class="proj-detail__info-value proj-detail__module-tags">
+                  <OTag v-for="m in project?.modules" :key="m" color="primary" size="medium" variant="outline">{{ m }}</OTag>
+                  <span v-if="!project?.modules?.length">—</span>
+                </div>
               </div>
               <div class="proj-detail__info-field">
                 <label class="proj-detail__info-label">{{ t('project.cpuArch') }}</label>
@@ -1006,6 +1034,12 @@ const handleAddProjectConfirm = () => {
               <OOption value="开发中" label="开发中" />
               <OOption value="测试中" label="测试中" />
               <OOption value="已完成" label="已完成" />
+            </OSelect>
+          </div>
+          <div class="edit-proj-form__field">
+            <label class="edit-proj-form__label"><span class="edit-proj-form__required">*</span>模块</label>
+            <OSelect v-model="editForm.modules" multiple :max-tag-count="3" :before-select="handleEditModuleBeforeSelect">
+              <OOption v-for="m in MODULE_OPTIONS" :key="m" :value="m" :label="m" />
             </OSelect>
           </div>
           <div class="edit-proj-form__field">
@@ -1364,6 +1398,14 @@ const handleAddProjectConfirm = () => {
               <OOption value="开发中" label="开发中" />
               <OOption value="测试中" label="测试中" />
               <OOption value="已完成" label="已完成" />
+            </OSelect>
+          </div>
+          <div class="add-proj-form__field">
+            <label class="add-proj-form__label">
+              <span class="add-proj-form__required">*</span>模块
+            </label>
+            <OSelect v-model="addProjectDialog.form.modules" multiple :max-tag-count="3" clearable>
+              <OOption v-for="m in MODULE_OPTIONS" :key="m" :value="m" :label="m" />
             </OSelect>
           </div>
           <div class="add-proj-form__field add-proj-form__field--full">
@@ -1813,6 +1855,12 @@ const handleAddProjectConfirm = () => {
       color: var(--o-color-primary1);
       word-break: break-all;
     }
+  }
+
+  &__module-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--o-r-gap-2);
   }
 
   &__timeline-card { margin-top: var(--o-r-gap-5); }

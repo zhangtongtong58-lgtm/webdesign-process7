@@ -48,6 +48,7 @@ const zh: Record<string, string> = {
   'project.productVersion': '产品版本',
   'project.cpuArch': 'CPU架构',
   'project.forkRepo': 'Fork仓库',
+  'project.moduleField': '模块',
   'project.statusActive': '开发中',
   'project.statusPlanning': '规划中',
   'project.statusArchived': '已归档',

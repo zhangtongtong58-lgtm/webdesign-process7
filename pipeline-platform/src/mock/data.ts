@@ -39,6 +39,7 @@ export interface Project {
   cpuArch: string
   targetRepo: string
   forkRepo: string
+  modules: string[]
   pipelineId: string
   pipelineName: string
   timeline: TimelineStep[]
@@ -153,6 +154,7 @@ export const MOCK_PROJECTS: Project[] = [
     owner: '张明', customer: '华为', productVersions: ['950'], cpuArch: 'x86_64',
     targetRepo: 'https://gitcode.com/openeuler/kernel',
     forkRepo: 'https://gitcode.com/zhangming/kernel',
+    modules: ['ACC', 'PCIe', 'ZIP', 'UACCE'],
     pipelineId: 'PL-001', pipelineName: 'Kernel-5.10 自动编译流水线',
     timeline: [
       { id: 'ts1', label: '启动', status: 'done', startDate: '2025-01-15' },
@@ -171,6 +173,7 @@ export const MOCK_PROJECTS: Project[] = [
     owner: '张明', customer: '华为', productVersions: ['950', '920'], cpuArch: 'aarch64',
     targetRepo: 'https://gitcode.com/openeuler/network-stack',
     forkRepo: 'https://gitcode.com/zhangming/network-stack',
+    modules: ['Network', 'QUIC', 'HTTP3'],
     pipelineId: 'PL-002', pipelineName: 'Network-Stack 编译流水线',
     timeline: [
       { id: 'ts1', label: '启动', status: 'done', startDate: '2025-03-20' },
@@ -189,6 +192,7 @@ export const MOCK_PROJECTS: Project[] = [
     owner: '张明', customer: '华为', productVersions: ['950'], cpuArch: 'x86_64',
     targetRepo: 'https://gitcode.com/openeuler/security-hardening',
     forkRepo: 'https://gitcode.com/zhangming/security-hardening',
+    modules: ['UACCE', 'Crypto', 'DPC'],
     pipelineId: '', pipelineName: '',
     timeline: [
       { id: 'ts1', label: '启动', status: 'done', startDate: '2024-11-05' },
