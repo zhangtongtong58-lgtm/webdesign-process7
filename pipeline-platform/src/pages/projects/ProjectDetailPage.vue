@@ -47,9 +47,9 @@ const MODULE_OPTIONS = ['ACC', 'PCIe', 'ZIP', 'UACCE', 'Crypto', 'DPC', 'Network
 
 const originalModules = ref<string[]>([])
 
-const handleEditModuleBeforeSelect = (value: string | number) => {
-  if (originalModules.value.includes(String(value)) && !editForm.modules.includes(String(value))) {
-    OMessage.warning('已有模块不可删减，只可新增')
+const handleEditModuleAddOnly = (value: string | number) => {
+  if (originalModules.value.includes(String(value))) {
+    OMessage.warning('已有模块不可重复添加')
     return false
   }
   return true
@@ -114,8 +114,8 @@ const openEditDialog = () => {
   editForm.productVersion = p.productVersions[0] ?? ''; editForm.cpuArch = p.cpuArch
   editForm.targetRepo = p.targetRepo
   editForm.forkRepo = p.forkRepo
-  editForm.modules = [...p.modules]
   originalModules.value = [...p.modules]
+  editForm.modules = []
   editForm.pipelineId = p.pipelineId; editForm.pipelineName = p.pipelineName
   initEditingTimeline()
   editDialog.visible = true
@@ -153,8 +153,9 @@ const handleEditConfirm = () => {
   if (!editForm.name.trim()) { OMessage.warning('项目名称不能为空'); return }
   if (!editForm.targetRepo.trim()) { OMessage.warning('目标仓库不能为空'); return }
   if (!editForm.forkRepo.trim()) { OMessage.warning('Fork仓库不能为空'); return }
-  if (!editForm.modules.length) { OMessage.warning('模块不能为空'); return }
+  if (!originalModules.value.length && !editForm.modules.length) { OMessage.warning('模块不能为空'); return }
   Object.assign(form, editForm)
+  form.modules = [...originalModules.value, ...editForm.modules]
   const tlOk = saveTimeline()
   if (!tlOk) return
   OMessage.success('保存成功')
@@ -1036,11 +1037,20 @@ const handleAddProjectConfirm = () => {
               <OOption value="已完成" label="已完成" />
             </OSelect>
           </div>
-          <div class="edit-proj-form__field">
+          <div class="edit-proj-form__field edit-proj-form__field--full">
             <label class="edit-proj-form__label"><span class="edit-proj-form__required">*</span>模块</label>
-            <OSelect v-model="editForm.modules" multiple :max-tag-count="3" :before-select="handleEditModuleBeforeSelect">
-              <OOption v-for="m in MODULE_OPTIONS" :key="m" :value="m" :label="m" />
-            </OSelect>
+            <div class="edit-module-area">
+              <div v-if="originalModules.length" class="edit-module-area__locked">
+                <span class="edit-module-area__locked-label">已有模块：</span>
+                <OTag v-for="m in originalModules" :key="m" color="primary" size="medium" variant="outline" class="edit-module-area__locked-tag">{{ m }}</OTag>
+              </div>
+              <div class="edit-module-area__add">
+                <span class="edit-module-area__add-label">新增模块：</span>
+                <OSelect v-model="editForm.modules" multiple :max-tag-count="3" :before-select="handleEditModuleAddOnly" clearable class="edit-module-area__add-select">
+                  <OOption v-for="m in MODULE_OPTIONS" :key="m" :value="m" :label="m" :disabled="originalModules.includes(m)" />
+                </OSelect>
+              </div>
+            </div>
           </div>
           <div class="edit-proj-form__field">
             <label class="edit-proj-form__label"><span class="edit-proj-form__required">*</span>负责人</label>
@@ -2396,6 +2406,43 @@ const handleAddProjectConfirm = () => {
   display: flex;
   justify-content: flex-end;
   gap: var(--o-r-gap-3);
+}
+
+/* ── 编辑弹窗模块区域 ── */
+.edit-module-area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--o-r-gap-3);
+}
+.edit-module-area__locked {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--o-r-gap-2);
+}
+.edit-module-area__locked-label {
+  color: var(--o-color-info3);
+  font-size: var(--o-r-font_size-tip1);
+  font-weight: var(--o-font_weight-regular);
+  white-space: nowrap;
+}
+.edit-module-area__locked-tag {
+  cursor: default;
+}
+.edit-module-area__add {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--o-r-gap-3);
+}
+.edit-module-area__add-label {
+  color: var(--o-color-info3);
+  font-size: var(--o-r-font_size-tip1);
+  font-weight: var(--o-font_weight-regular);
+  white-space: nowrap;
+  line-height: var(--o-control_size-m);
+}
+.edit-module-area__add-select {
+  flex: 1;
 }
 
 /* ─ 编辑弹窗时间计划（OStep 步骤条 + 卡片编辑区） ─ */
